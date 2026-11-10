@@ -8,13 +8,29 @@ const api = axios.create({
   },
 });
 
+// Automatically attach JWT token if present in localStorage or cookies
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('kormobot_token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Global error handling can be enriched here
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('kormobot_token');
+      // If unauthorized on protected route, redirect to sign-in
+      if (!window.location.pathname.startsWith('/sign-')) {
+        window.location.href = '/sign-in';
+      }
+    }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
-
