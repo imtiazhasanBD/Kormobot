@@ -8,36 +8,39 @@ generator client {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String   @id @default(uuid())
+  email        String   @unique
   passwordHash String?
-  googleId     String?       @unique
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  googleId     String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   profile      Profile?
   resumes      Resume[]
+  jobs         Job[]
   applications Application[]
+  subscription Subscription?
   credits      Int           @default(10)
 }
 
 model Profile {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName       String?
-  phone          String?
-  location       String?
-  role           String?
-  summary        String?
-  skills         String[] @default([])
-  experience     Json?
-  education      Json?
-  projects       Json?
-  links          Json?
-  discordWebhook String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName          String?
+  phone             String?
+  location          String?
+  role              String?
+  summary           String?
+  skills            String[] @default([])
+  experience        Json?
+  education         Json?
+  projects          Json?
+  links             Json?
+  preferredLanguage String   @default("en") // "en" | "bn"
+  discordWebhook    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Resume {
@@ -50,31 +53,65 @@ model Resume {
 }
 
 model Job {
-  id          String        @id @default(uuid())
-  title       String
-  company     String
-  location    String?
-  salary      String?
-  jobType     String?
-  jobUrl      String        @unique
-  platform    String        // greenhouse, lever, workable, wellfound
-  description String?
-  savedStatus Boolean       @default(false)
-  createdAt   DateTime      @default(now())
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform        String // greenhouse, lever, workable, wellfound
+  title           String
+  company         String
+  companyLogo     String?
+  location        String?
+  salary          String?
+  jobType         String? // full-time, contract, remote, etc.
+  experienceLevel String?
+  description     String?
+  tags            Json? // array of skill tags
+  matchScore      Int? // match score %
+  jobUrl          String
+  sourceUrl       String?
+  appliedStatus   String   @default("none") // none, queued, submitted, failed, missing_info
+  savedStatus     Boolean  @default(false)
+  fetchedAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   applications Application[]
+
+  @@unique([userId, jobUrl])
+  @@index([userId, platform])
+  @@index([userId, savedStatus])
 }
 
 model Application {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   jobId         String
-  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  status        String   @default("pending") // pending, missing_info, submitted, failed
-  missingFields String[] @default([])
+  job           Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status        String    @default("queued") // queued, missing_info, submitted, failed
+  missingFields String[]  @default([])
   screenshotUrl String?
   logs          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  submittedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, jobId])
 }
 
+model Subscription {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  planName             String    @default("free") // free, pro, unlimited
+  planLimit            Int       @default(5) // 5/day, 25/day, -1 (unlimited)
+  status               String    @default("active") // active, past_due, canceled
+  dailyUsageCount      Int       @default(0)
+  usageResetDate       DateTime  @default(now())
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
