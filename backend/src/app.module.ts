@@ -8,6 +8,7 @@ import { AutomationModule } from './automation/automation.module';
 import { BillingModule } from './billing/billing.module';
 import { DiscordModule } from './discord/discord.module';
 import { SearchModule } from './search/search.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { SearchModule } from './search/search.module';
     BillingModule,
     DiscordModule,
     SearchModule,
+    AiModule,
   ],
 })
 export class AppModule {}
