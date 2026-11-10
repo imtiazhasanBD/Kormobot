@@ -6,12 +6,27 @@ import {
   Req,
   Res,
   UseGuards,
+  UsePipes,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyOtpDto,
+  ResendOtpDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  registerSchema,
+  loginSchema,
+  verifyOtpSchema,
+  resendOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from './dto/auth.dto';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { JwtAuthGuard, GoogleAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -19,23 +34,55 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(
-    @Body() dto: RegisterDto,
+  @UsePipes(new ZodValidationPipe(registerSchema))
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Post('verify-otp')
+  @UsePipes(new ZodValidationPipe(verifyOtpSchema))
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(dto);
+    const result = await this.authService.verifyOtp(dto);
     this.setTokenCookie(res, result.accessToken);
     return result;
   }
 
+  @Post('resend-otp')
+  @UsePipes(new ZodValidationPipe(resendOtpSchema))
+  @HttpCode(HttpStatus.OK)
+  async resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto);
+  }
+
+  @Post('forgot-password')
+  @UsePipes(new ZodValidationPipe(forgotPasswordSchema))
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('reset-password')
+  @UsePipes(new ZodValidationPipe(resetPasswordSchema))
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
   @Post('login')
+  @UsePipes(new ZodValidationPipe(loginSchema))
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto);
-    this.setTokenCookie(res, result.accessToken);
+    if ('accessToken' in result && result.accessToken) {
+      this.setTokenCookie(res, result.accessToken);
+    }
     return result;
   }
 
@@ -76,4 +123,3 @@ export class AuthController {
     });
   }
 }
-

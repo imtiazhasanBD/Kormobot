@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { loginSchema } from '@/lib/validations/auth.schema';
 import { Bot, Mail, Lock, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function SignInPage() {
@@ -43,6 +44,15 @@ export default function SignInPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    // Zod Client Validation
+    const validation = loginSchema.safeParse({ email, password });
+    if (!validation.success) {
+      const issue = validation.error.issues?.[0];
+      setErrorMsg(issue?.message || 'Please check your inputs.');
+      return;
+    }
+
     loginMutation.mutate();
   };
 
@@ -99,7 +109,6 @@ export default function SignInPage() {
               <Mail className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
@@ -109,14 +118,21 @@ export default function SignInPage() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-              {locale === 'bn' ? 'পাসওয়ার্ড' : 'PASSWORD'}
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] font-bold text-[#475569] uppercase tracking-wider">
+                {locale === 'bn' ? 'পাসওয়ার্ড' : 'PASSWORD'}
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-[11px] font-semibold text-primary hover:underline"
+              >
+                {locale === 'bn' ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot password?'}
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
               <input
                 type={showPassword ? 'text' : 'password'}
-                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"

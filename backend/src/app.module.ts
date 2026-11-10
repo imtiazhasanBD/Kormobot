@@ -9,11 +9,13 @@ import { BillingModule } from './billing/billing.module';
 import { DiscordModule } from './discord/discord.module';
 import { SearchModule } from './search/search.module';
 import { AiModule } from './ai/ai.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MailModule,
     AuthModule,
     UsersModule,
     JobsModule,

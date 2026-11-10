@@ -1,25 +1,66 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { z } from 'zod';
 
-export class RegisterDto {
-  @IsEmail({}, { message: 'Please provide a valid email address' })
-  @IsNotEmpty({ message: 'Email is required' })
-  email: string;
+export const registerSchema = z.object({
+  fullName: z.string().optional(),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please provide a valid email address'),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters long'),
+});
 
-  @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  password: string;
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please provide a valid email address'),
+  password: z
+    .string()
+    .min(1, 'Password is required'),
+});
 
-  @IsString()
-  fullName?: string;
-}
+export const verifyOtpSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please provide a valid email address'),
+  otp: z
+    .string()
+    .regex(/^\d{6}$/, 'OTP must be a 6-digit code'),
+});
 
-export class LoginDto {
-  @IsEmail({}, { message: 'Please provide a valid email address' })
-  @IsNotEmpty({ message: 'Email is required' })
-  email: string;
+export const resendOtpSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please provide a valid email address'),
+});
 
-  @IsString()
-  @IsNotEmpty({ message: 'Password is required' })
-  password: string;
-}
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please provide a valid email address'),
+});
 
+export const resetPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please provide a valid email address'),
+  otp: z
+    .string()
+    .regex(/^\d{6}$/, 'OTP must be a 6-digit code'),
+  newPassword: z
+    .string()
+    .min(6, 'Password must be at least 6 characters long'),
+});
+
+export type RegisterDto = z.infer<typeof registerSchema>;
+export type LoginDto = z.infer<typeof loginSchema>;
+export type VerifyOtpDto = z.infer<typeof verifyOtpSchema>;
+export type ResendOtpDto = z.infer<typeof resendOtpSchema>;
+export type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
