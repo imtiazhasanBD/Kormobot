@@ -177,6 +177,7 @@ export default function SignUpPage() {
 
   return (
     <AuthSplitShell
+      variant="sign-up"
       title={title}
       subtitle={subtitle}
       errorMsg={errorMsg}

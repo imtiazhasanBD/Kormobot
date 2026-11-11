@@ -82,6 +82,7 @@ export default function SignInPage() {
 
   return (
     <AuthSplitShell
+      variant="sign-in"
       title={bn ? 'স্বাগতম' : 'Welcome Back'}
       subtitle={
         bn

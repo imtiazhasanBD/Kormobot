@@ -3,9 +3,35 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { SiteShell } from '@/components/site-shell';
-import { AlertCircle, CheckCircle2, Zap, Layers, Check } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  Layers,
+  Check,
+  Sparkles,
+  Rocket,
+  ShieldCheck,
+  KeyRound,
+  Clock,
+  FileText,
+} from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
+
+export type AuthShowcaseVariant = 'sign-in' | 'sign-up' | 'forgot-password';
+
+export interface AuthShowcaseFeature {
+  icon: React.ReactNode;
+  label: string;
+}
+
+export interface AuthShowcaseConfig {
+  illustration: React.ReactNode;
+  title: string;
+  description: string;
+  features: AuthShowcaseFeature[];
+}
 
 export const authInputCls =
   'h-[46px] rounded-md border-input bg-card text-sm md:text-sm text-foreground placeholder:text-muted-foreground shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-ring';
@@ -52,7 +78,15 @@ function MiniBars({ className = 'w-6 h-6' }: { className?: string }) {
   );
 }
 
-function ShowcaseIllustration() {
+function IllustrationFrame({
+  leftTile,
+  windowBody,
+  floatingCard,
+}: {
+  leftTile: React.ReactNode;
+  windowBody: React.ReactNode;
+  floatingCard: React.ReactNode;
+}) {
   return (
     <div className="relative w-[420px] max-w-full h-[260px] lg:-ml-[22px]">
       <svg
@@ -85,41 +119,152 @@ function ShowcaseIllustration() {
         </div>
 
         <div className="absolute left-[21px] top-[44px] w-[81px] h-[69px] rounded-md bg-accent flex items-center justify-center text-primary">
-          <svg width="46" height="46" viewBox="0 0 48 48" fill="none">
-            <line x1="24" y1="5" x2="24" y2="11" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="24" cy="4.5" r="2.2" fill="currentColor" />
-            <rect x="9" y="11.5" width="30" height="24" rx="8" fill="var(--card)" stroke="currentColor" strokeWidth="3.4" />
-            <circle cx="18.2" cy="23.5" r="2.7" fill="currentColor" />
-            <circle cx="29.8" cy="23.5" r="2.7" fill="currentColor" />
-            <path d="M4.5 20V28" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
-            <path d="M43.5 20V28" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
-          </svg>
+          {leftTile}
         </div>
         <span className="absolute left-[29px] top-[126px] w-[66px] h-[5px] rounded-full bg-primary/20" />
 
-        {[0, 1, 2].map((r) => (
-          <div
-            key={r}
-            style={{ top: 49 + r * 27 }}
-            className="absolute left-[127px] flex items-center gap-[9px]"
-          >
-            <span className="w-[15px] h-[15px] rounded-full bg-success text-success-foreground flex items-center justify-center">
-              <Check className="w-2.5 h-2.5 stroke-[2.6]" />
-            </span>
-            <span className="space-y-[3px]">
-              <span className="block h-[3px] w-[55px] rounded-full bg-muted-foreground/35" />
-              <span className="block h-[3px] w-[36px] rounded-full bg-muted" />
-            </span>
-          </div>
-        ))}
+        {windowBody}
       </div>
 
-      <div className="absolute left-[300px] top-[177px] w-[104px] h-[74px] rounded-md border-2 border-foreground/85 bg-card flex items-end justify-center gap-[7px] pb-[18px] z-10">
-        <span className="w-[11px] h-[14px] rounded-xs bg-chart-3" />
-        <span className="w-[11px] h-[26px] rounded-xs bg-chart-2" />
-        <span className="w-[11px] h-[38px] rounded-xs bg-primary" />
+      <div className="absolute left-[300px] top-[177px] w-[104px] h-[74px] rounded-md border-2 border-foreground/85 bg-card flex items-center justify-center z-10">
+        {floatingCard}
       </div>
     </div>
+  );
+}
+
+function SignInIllustration() {
+  return (
+    <IllustrationFrame
+      leftTile={
+        <svg width="46" height="46" viewBox="0 0 48 48" fill="none">
+          <line x1="24" y1="5" x2="24" y2="11" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="24" cy="4.5" r="2.2" fill="currentColor" />
+          <rect x="9" y="11.5" width="30" height="24" rx="8" fill="var(--card)" stroke="currentColor" strokeWidth="3.4" />
+          <circle cx="18.2" cy="23.5" r="2.7" fill="currentColor" />
+          <circle cx="29.8" cy="23.5" r="2.7" fill="currentColor" />
+          <path d="M4.5 20V28" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
+          <path d="M43.5 20V28" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
+        </svg>
+      }
+      windowBody={
+        <>
+          {[0, 1, 2].map((r) => (
+            <div
+              key={r}
+              style={{ top: 49 + r * 27 }}
+              className="absolute left-[127px] flex items-center gap-[9px]"
+            >
+              <span className="w-[15px] h-[15px] rounded-full bg-success text-success-foreground flex items-center justify-center">
+                <Check className="w-2.5 h-2.5 stroke-[2.6]" />
+              </span>
+              <span className="space-y-[3px]">
+                <span className="block h-[3px] w-[55px] rounded-full bg-muted-foreground/35" />
+                <span className="block h-[3px] w-[36px] rounded-full bg-muted" />
+              </span>
+            </div>
+          ))}
+        </>
+      }
+      floatingCard={
+        <div className="w-full h-full flex items-end justify-center gap-[7px] pb-[18px]">
+          <span className="w-[11px] h-[14px] rounded-xs bg-chart-3" />
+          <span className="w-[11px] h-[26px] rounded-xs bg-chart-2" />
+          <span className="w-[11px] h-[38px] rounded-xs bg-primary" />
+        </div>
+      }
+    />
+  );
+}
+
+function SignUpIllustration() {
+  return (
+    <IllustrationFrame
+      leftTile={<FileText className="w-9 h-9 stroke-[2]" />}
+      windowBody={
+        <div className="absolute left-[123px] top-[46px] right-[18px] space-y-2.5">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="h-[4px] w-[48px] rounded-full bg-foreground/70" />
+              <span className="h-[4px] w-[18px] rounded-full bg-primary" />
+            </div>
+            <div className="h-[6px] w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-full w-[86%] rounded-full bg-primary" />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="h-[4px] w-[42px] rounded-full bg-muted-foreground/45" />
+              <span className="h-[4px] w-[18px] rounded-full bg-chart-2" />
+            </div>
+            <div className="h-[6px] w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-full w-[72%] rounded-full bg-chart-2" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <span className="w-3.5 h-3.5 rounded-full bg-success text-success-foreground flex items-center justify-center">
+              <Check className="w-2 h-2 stroke-[2.8]" />
+            </span>
+            <span className="h-[4px] w-[62px] rounded-full bg-muted-foreground/40" />
+          </div>
+        </div>
+      }
+      floatingCard={
+        <div className="flex flex-col items-center justify-center gap-1.5">
+          <div className="w-7 h-7 rounded-md bg-primary/15 text-primary flex items-center justify-center">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-5 h-1.5 rounded-full bg-primary" />
+            <span className="w-3 h-1.5 rounded-full bg-success" />
+          </div>
+        </div>
+      }
+    />
+  );
+}
+
+function ForgotPasswordIllustration() {
+  return (
+    <IllustrationFrame
+      leftTile={<ShieldCheck className="w-9 h-9 stroke-[2]" />}
+      windowBody={
+        <div className="absolute left-[122px] top-[48px] right-[16px] space-y-3">
+          <div className="grid grid-cols-6 gap-1">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <span
+                key={i}
+                className="h-6 rounded-xs border border-primary/30 bg-accent flex items-center justify-center"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              </span>
+            ))}
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="block h-[4px] w-[82px] rounded-full bg-muted-foreground/35" />
+            <span className="block h-[4px] w-[58px] rounded-full bg-muted" />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="w-3.5 h-3.5 rounded-full bg-success text-success-foreground flex items-center justify-center">
+              <Check className="w-2 h-2 stroke-[2.8]" />
+            </span>
+            <span className="h-[4px] w-[46px] rounded-full bg-success/55" />
+          </div>
+        </div>
+      }
+      floatingCard={
+        <div className="flex flex-col items-center justify-center gap-1.5">
+          <div className="w-7 h-7 rounded-md bg-success-muted text-success flex items-center justify-center">
+            <KeyRound className="w-4 h-4" />
+          </div>
+          <span className="w-9 h-1.5 rounded-full bg-success" />
+        </div>
+      }
+    />
   );
 }
 
@@ -146,7 +291,83 @@ export function GithubLogo({ className = 'w-5 h-5 shrink-0 fill-current' }: { cl
   );
 }
 
+function getShowcaseConfig(variant: AuthShowcaseVariant, bn: boolean): AuthShowcaseConfig {
+  switch (variant) {
+    case 'sign-up':
+      return {
+        illustration: <SignUpIllustration />,
+        title: bn ? 'আপনার এআই জব কোপাইলট শুরু করুন' : 'Launch Your AI Job Copilot',
+        description: bn
+          ? 'ফ্রি অ্যাকাউন্ট তৈরি করুন, একবার রিজিউম আপলোড করুন এবং কর্মবট এআইকে সেরা চাকরিতে স্বয়ংক্রিয়ভাবে আবেদন করতে দিন।'
+          : 'Create your free account, upload your resume once, and let Kormobot AI match and auto-apply to top roles.',
+        features: [
+          {
+            icon: <Sparkles className="w-5 h-5" />,
+            label: bn ? '১-মিনিটে প্রোফাইল ও রিজিউম সেটআপ' : '1-Minute Profile & Resume Setup',
+          },
+          {
+            icon: <CheckCircle2 className="w-5 h-5" />,
+            label: bn ? 'ইমেইল ওটিপি যাচাইকৃত নিরাপত্তা' : 'OTP Verified Account Security',
+          },
+          {
+            icon: <Rocket className="w-5 h-5" />,
+            label: bn ? 'তাৎক্ষণিক এআই জব ম্যাচিং' : 'Instant AI Resume Tailoring',
+          },
+        ],
+      };
+
+    case 'forgot-password':
+      return {
+        illustration: <ForgotPasswordIllustration />,
+        title: bn ? 'নিরাপদ অ্যাকাউন্ট পুনরুদ্ধার' : 'Secure Account Recovery',
+        description: bn
+          ? '৬-সংখ্যার ইমেইল ওটিপি যাচাইকরণ এবং এনক্রিপ্টেড পাসওয়ার্ড রিসেটের মাধ্যমে দ্রুত আপনার অ্যাকাউন্টে ফিরে যান।'
+          : 'Regain access in seconds with 6-digit email OTP verification and encrypted password reset protection.',
+        features: [
+          {
+            icon: <KeyRound className="w-5 h-5" />,
+            label: bn ? 'তাৎক্ষণিক ৬-সংখ্যার ইমেইল ওটিপি' : 'Instant 6-Digit Email OTP',
+          },
+          {
+            icon: <ShieldCheck className="w-5 h-5" />,
+            label: bn ? 'এনক্রিপ্টেড পাসওয়ার্ড সুরক্ষা' : 'Encrypted Password Protection',
+          },
+          {
+            icon: <Clock className="w-5 h-5" />,
+            label: bn ? 'কোনো ডেটা ছাড়াই দ্রুত পুনরুদ্ধার' : 'Zero Data Loss Recovery',
+          },
+        ],
+      };
+
+    case 'sign-in':
+    default:
+      return {
+        illustration: <SignInIllustration />,
+        title: bn ? 'চাকরি খুঁজুন ও স্বয়ংক্রিয় আবেদন করুন' : 'Find & Auto-Apply to Jobs',
+        description: bn
+          ? 'এআইকে আপনার চাকরি খোঁজা, আবেদন এবং রিজিউম ম্যাচিং সামলাতে দিন—সময় বাঁচান এবং বেশি সুযোগ পান।'
+          : 'Let AI handle your job search, application, and resume matching—save time and get more opportunities.',
+        features: [
+          {
+            icon: <Zap className="w-5 h-5 fill-current" />,
+            label: bn ? 'স্বয়ংক্রিয় চাকরি আবেদন' : 'Autonomous Job Apply',
+          },
+          {
+            icon: <Layers className="w-5 h-5 stroke-[1.8]" />,
+            label: bn ? 'এআই রিজিউম পার্সিং' : 'AI Resume Parsing',
+          },
+          {
+            icon: <MiniBars className="w-5 h-5" />,
+            label: bn ? 'স্মার্ট জব ম্যাচিং' : 'Smart Job Matching',
+          },
+        ],
+      };
+  }
+}
+
 interface AuthSplitShellProps {
+  variant?: AuthShowcaseVariant;
+  showcase?: AuthShowcaseConfig;
   title: string;
   subtitle: React.ReactNode;
   errorMsg?: string;
@@ -155,6 +376,8 @@ interface AuthSplitShellProps {
 }
 
 export function AuthSplitShell({
+  variant = 'sign-in',
+  showcase,
   title,
   subtitle,
   errorMsg,
@@ -164,11 +387,7 @@ export function AuthSplitShell({
   const { locale } = useI18n();
   const bn = locale === 'bn';
 
-  const features = [
-    { icon: 'zap', label: bn ? 'স্বয়ংক্রিয় চাকরি আবেদন' : 'Autonomous Job Apply' },
-    { icon: 'layers', label: bn ? 'এআই রিজিউম পার্সিং' : 'AI Resume Parsing' },
-    { icon: 'chart', label: bn ? 'স্মার্ট জব ম্যাচিং' : 'Smart Job Matching' },
-  ];
+  const activeShowcase = showcase ?? getShowcaseConfig(variant, bn);
 
   return (
     <SiteShell>
@@ -251,26 +470,22 @@ export function AuthSplitShell({
               className="absolute right-[28px] top-[30px]"
             />
 
-            <ShowcaseIllustration />
+            {activeShowcase.illustration}
 
             <div className="mt-[45px]">
               <h2 className="text-xl lg:text-2xl leading-snug font-extrabold tracking-[-0.02em] text-foreground">
-                {bn ? 'চাকরি খুঁজুন ও স্বয়ংক্রিয় আবেদন করুন' : 'Find & Auto-Apply to Jobs'}
+                {activeShowcase.title}
               </h2>
               <p className="text-sm lg:text-[15px] leading-relaxed text-muted-foreground mt-2.5 max-w-[405px]">
-                {bn
-                  ? 'এআইকে আপনার চাকরি খোঁজা, আবেদন এবং রিজিউম ম্যাচিং সামলাতে দিন—সময় বাঁচান এবং বেশি সুযোগ পান।'
-                  : 'Let AI handle your job search, application, and resume matching—save time and get more opportunities.'}
+                {activeShowcase.description}
               </p>
             </div>
 
             <div className="mt-[27px] space-y-[11px]">
-              {features.map((feat) => (
+              {activeShowcase.features.map((feat) => (
                 <div key={feat.label} className="flex items-center gap-[18px] lg:ml-[1px]">
                   <div className="w-10 h-10 rounded-md bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0 text-primary">
-                    {feat.icon === 'zap' && <Zap className="w-5 h-5 fill-current" />}
-                    {feat.icon === 'layers' && <Layers className="w-5 h-5 stroke-[1.8]" />}
-                    {feat.icon === 'chart' && <MiniBars className="w-5 h-5" />}
+                    {feat.icon}
                   </div>
                   <span className="text-sm font-semibold text-foreground">
                     {feat.label}
@@ -284,4 +499,3 @@ export function AuthSplitShell({
     </SiteShell>
   );
 }
-

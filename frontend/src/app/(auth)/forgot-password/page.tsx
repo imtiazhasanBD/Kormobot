@@ -140,6 +140,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthSplitShell
+      variant="forgot-password"
       title={title}
       subtitle={subtitle}
       errorMsg={errorMsg}
