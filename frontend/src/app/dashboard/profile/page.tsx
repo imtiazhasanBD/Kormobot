@@ -41,7 +41,7 @@ type ProfileTab =
   | 'projects'
   | 'education'
   | 'skills'
-  | 'preferences';
+  //| 'preferences';
 
 interface ExperienceItem {
   company: string;
@@ -283,7 +283,7 @@ export default function ProfilePage() {
     { id: 'projects', label: t.profile.projectsTab, icon: FolderGit2 },
     { id: 'education', label: t.profile.educationTab, icon: GraduationCap },
     { id: 'skills', label: t.profile.skillsTab, icon: Code },
-    { id: 'preferences', label: t.profile.preferencesTab, icon: Sliders },
+  //  { id: 'preferences', label: t.profile.preferencesTab, icon: Sliders },
   ];
 
   if (isLoading) {
