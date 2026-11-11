@@ -17,13 +17,19 @@ import {
   ChevronLeft,
   ChevronRight,
   Bot,
-  Globe,
   Sparkles,
   Menu,
-  X,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { ResumeUploadModal } from '@/components/dashboard/resume-upload-modal';
+import { LanguageSwitcher } from '@/components/language-switcher';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -33,11 +39,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Fetch user profile to check if resume has been uploaded
   const { data: profileData, isLoading: isProfileLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -91,10 +96,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     router.push('/sign-in');
   };
 
-  const toggleLanguage = () => {
-    setLocale(locale === 'en' ? 'bn' : 'en');
-  };
-
   const isActive = (href: string) => {
     if (href === '/dashboard/jobs' && pathname === '/dashboard') return true;
     return pathname.startsWith(href);
@@ -104,8 +105,212 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
+  const renderNavLink = (
+    href: string,
+    label: string,
+    Icon: React.ComponentType<{ className?: string }>,
+    active: boolean,
+    isCollapsed: boolean,
+    variant: 'primary' | 'subtle' = 'primary',
+  ) => {
+    const linkClass = cn(
+      'flex items-center gap-3 px-3 rounded-md text-sm font-medium transition-all',
+      variant === 'primary' ? 'py-2.5' : 'py-2',
+      isCollapsed && 'justify-center px-0',
+      active
+        ? variant === 'primary'
+          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 font-semibold'
+          : 'bg-primary/10 text-primary font-semibold'
+        : 'text-slate-600 hover:text-foreground hover:bg-muted',
+    );
+
+    const iconClass = cn(
+      'w-5 h-5 shrink-0',
+      active && variant === 'primary'
+        ? 'text-primary-foreground'
+        : active
+          ? 'text-primary'
+          : 'text-slate-500',
+    );
+
+    const linkElement = (
+      <Link
+        href={href}
+        onClick={() => setMobileOpen(false)}
+        className={linkClass}
+      >
+        <Icon className={iconClass} />
+        {!isCollapsed && <span className="truncate">{label}</span>}
+      </Link>
+    );
+
+    if (!isCollapsed) {
+      return <React.Fragment key={href}>{linkElement}</React.Fragment>;
+    }
+
+    return (
+      <Tooltip key={href}>
+        <TooltipTrigger render={linkElement} />
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    );
+  };
+
+  const renderSidebarBody = (isCollapsed: boolean, isMobile = false) => (
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+      {/* Sidebar Header */}
+      <div className="h-16 px-4 border-b border-sidebar-border flex items-center justify-between shrink-0">
+        <Link
+          href="/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-3 overflow-hidden group"
+        >
+          <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground shrink-0 shadow-sm shadow-primary/25 group-hover:scale-105 transition-transform">
+            <Bot className="w-5 h-5" />
+          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <span className="font-bold text-base tracking-tight text-foreground leading-tight">
+                Kormobot AI
+              </span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
+                Autonomous Agent
+              </span>
+            </div>
+          )}
+        </Link>
+
+        {!isMobile && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden lg:inline-flex w-7 h-7 text-muted-foreground hover:text-foreground cursor-pointer"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </Button>
+        )}
+      </div>
+
+      {/* Navigation Links */}
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+        {navItems.map((item) =>
+          renderNavLink(
+            item.href,
+            item.label,
+            item.icon,
+            isActive(item.href),
+            isCollapsed,
+            'primary',
+          ),
+        )}
+      </nav>
+
+      {/* Pro / Credits Banner (when expanded) */}
+      {!isCollapsed && (
+        <Card className="mx-3 mb-2 p-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 ring-0 border shadow-none">
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-primary">
+                Daily AI Applies
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-xs text-muted-foreground">
+              <span>
+                Remaining:{' '}
+                {profileData?.user?.credits !== undefined
+                  ? profileData.user.credits
+                  : 5}{' '}
+                / 5 free
+              </span>
+            </div>
+            <Button
+              size="sm"
+              nativeButton={false}
+              render={<Link href="/dashboard/billing" onClick={() => setMobileOpen(false)} />}
+              className="w-full text-xs font-semibold shadow-xs"
+            >
+              {t.billing.upgrade}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Separator />
+
+      {/* Sidebar Footer */}
+      <div className="p-3 space-y-1">
+        {renderNavLink(
+          '/dashboard/billing',
+          t.nav.billing,
+          CreditCard,
+          pathname === '/dashboard/billing',
+          isCollapsed,
+          'subtle',
+        )}
+
+        {renderNavLink(
+          '/dashboard/profile',
+          t.nav.settings,
+          Settings,
+          pathname === '/dashboard/profile',
+          isCollapsed,
+          'subtle',
+        )}
+
+        {isCollapsed ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                  aria-label={t.common.logout}
+                />
+              }
+            >
+              <LogOut className="w-5 h-5 shrink-0" />
+            </TooltipTrigger>
+            <TooltipContent side="right">{t.common.logout}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleLogout}
+            className="w-full justify-start gap-3 px-3 py-2 h-9 text-sm font-medium text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            <span className="truncate">{t.common.logout}</span>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const initials = profileData?.profile?.fullName
+    ? String(profileData.profile.fullName)
+        .trim()
+        .split(/\s+/)
+        .map((n: string) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : '';
+
   return (
-    <div className="min-h-screen bg-[#f8f9fd] flex text-foreground font-sans antialiased">
+    <div className="min-h-screen bg-background flex text-foreground font-sans antialiased">
       {/* Non-closable Onboarding Modal for First Login when no resume exists */}
       <ResumeUploadModal
         isOpen={showOnboardingModal}
@@ -113,175 +318,46 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         onSuccess={handleOnboardingUploadSuccess}
       />
 
-      {/* Mobile Backdrop */}
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 lg:hidden"
-        />
-      )}
+      {/* Mobile Sidebar Drawer */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-64 p-0 gap-0 lg:hidden">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          {renderSidebarBody(false, true)}
+        </SheetContent>
+      </Sheet>
 
-      {/* Sidebar */}
+      {/* Desktop Fixed Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 bg-white border-r border-[#e5e7eb] flex flex-col transition-all duration-300 ease-in-out ${
-          collapsed ? 'w-20' : 'w-64'
-        } ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
-      >
-        {/* Sidebar Header */}
-        <div className="h-16 px-4 border-b border-[#f1f2f6] flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 overflow-hidden group"
-          >
-            <div className="w-9 h-9 rounded-md bg-[#371ee1] flex items-center justify-center text-white shrink-0 shadow-sm shadow-[#371ee1]/25 group-hover:scale-105 transition-transform">
-              <Bot className="w-5 h-5" />
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="font-bold text-base tracking-tight text-slate-900 leading-tight">
-                  Kormobot AI
-                </span>
-                <span className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider">
-                  Autonomous Agent
-                </span>
-              </div>
-            )}
-          </Link>
-
-          {/* Desktop collapse toggle */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex w-7 h-7 rounded-md border border-[#e5e7eb] items-center justify-center text-muted-foreground hover:text-foreground hover:bg-[#f8f9fd] transition-colors"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronLeft className="w-4 h-4" />
-            )}
-          </button>
-
-          {/* Mobile close button */}
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-slate-100"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Navigation Links */}
-        <div className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                title={collapsed ? item.label : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-[#371ee1] text-white shadow-sm shadow-[#371ee1]/20 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-[#f4f5fa]'
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 shrink-0 ${
-                    active ? 'text-white' : 'text-slate-500'
-                  }`}
-                />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Pro / Credits Banner (when expanded) */}
-        {!collapsed && (
-          <div className="p-3 mx-3 mb-2 rounded-md bg-gradient-to-br from-[#371ee1]/10 via-[#371ee1]/5 to-transparent border border-[#371ee1]/20">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-[#371ee1]" />
-              <span className="text-xs font-semibold text-[#371ee1]">
-                Daily AI Applies
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-xs text-slate-600 mb-2">
-              <span>
-                Remaining: {profileData?.user?.credits !== undefined ? profileData.user.credits : 5} / 5 free
-              </span>
-            </div>
-            <Link
-              href="/dashboard/billing"
-              className="block w-full text-center py-1.5 px-2 bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold rounded-md transition-colors shadow-xs"
-            >
-              {t.billing.upgrade}
-            </Link>
-          </div>
+        className={cn(
+          'hidden lg:flex fixed top-0 bottom-0 left-0 z-40 border-r border-sidebar-border flex-col transition-all duration-300 ease-in-out',
+          collapsed ? 'w-20' : 'w-64',
         )}
-
-        {/* Sidebar Footer */}
-        <div className="p-3 border-t border-[#f1f2f6] space-y-1">
-          {/* Billing Link */}
-          <Link
-            href="/dashboard/billing"
-            title={collapsed ? t.nav.billing : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              pathname === '/dashboard/billing'
-                ? 'bg-[#371ee1]/10 text-[#371ee1] font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-[#f4f5fa]'
-            }`}
-          >
-            <CreditCard className="w-5 h-5 shrink-0 text-slate-500" />
-            {!collapsed && <span className="truncate">{t.nav.billing}</span>}
-          </Link>
-
-          {/* Profile Settings Link */}
-          <Link
-            href="/dashboard/profile"
-            title={collapsed ? t.nav.settings : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              pathname === '/dashboard/profile'
-                ? 'bg-[#371ee1]/10 text-[#371ee1] font-semibold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-[#f4f5fa]'
-            }`}
-          >
-            <Settings className="w-5 h-5 shrink-0 text-slate-500" />
-            {!collapsed && <span className="truncate">{t.nav.settings}</span>}
-          </Link>
-
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            title={collapsed ? t.common.logout : undefined}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-          >
-            <LogOut className="w-5 h-5 shrink-0 text-red-500" />
-            {!collapsed && <span className="truncate">{t.common.logout}</span>}
-          </button>
-        </div>
+      >
+        {renderSidebarBody(collapsed, false)}
       </aside>
 
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ease-in-out min-w-0 ${
-          collapsed ? 'lg:pl-20' : 'lg:pl-64'
-        }`}
+        className={cn(
+          'flex-1 flex flex-col transition-all duration-300 ease-in-out min-w-0',
+          collapsed ? 'lg:pl-20' : 'lg:pl-64',
+        )}
       >
         {/* Top Header */}
-        <header className="h-16 sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-[#e5e7eb] px-4 sm:px-6 flex items-center justify-between">
+        <header className="h-16 sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-4 sm:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 rounded-md border border-[#e5e7eb] text-slate-600 hover:bg-[#f8f9fd]"
+              className="lg:hidden cursor-pointer"
+              aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
-            </button>
+            </Button>
             <div className="flex flex-col">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+              <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight">
                 {navItems.find((n) => isActive(n.href))?.label ||
                   (pathname.includes('billing') ? t.nav.billing : t.common.dashboard)}
               </h1>
@@ -289,21 +365,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Language Toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-md border border-[#e5e7eb] bg-white hover:bg-[#f8f9fd] text-slate-700 transition-colors shadow-2xs"
-            >
-              <Globe className="w-3.5 h-3.5 text-[#371ee1]" />
-              <span>{locale === 'en' ? 'বাংলা' : 'English'}</span>
-            </button>
+            <LanguageSwitcher className="bg-card shadow-2xs" />
 
-            {/* User Avatar Placeholder */}
             <Link
               href="/dashboard/profile"
-              className="w-8 h-8 rounded-md bg-[#371ee1]/10 border border-[#371ee1]/20 flex items-center justify-center text-[#371ee1] font-bold text-xs hover:ring-2 hover:ring-[#371ee1]/30 transition-all"
+              className="rounded-md hover:ring-2 hover:ring-primary/30 transition-all"
+              aria-label={t.nav.profile}
             >
-              <User className="w-4 h-4" />
+              <Avatar className="rounded-md after:rounded-md">
+                <AvatarFallback className="rounded-md bg-primary/10 text-primary font-bold text-xs border border-primary/20">
+                  {initials || <User className="w-4 h-4" />}
+                </AvatarFallback>
+              </Avatar>
             </Link>
           </div>
         </header>

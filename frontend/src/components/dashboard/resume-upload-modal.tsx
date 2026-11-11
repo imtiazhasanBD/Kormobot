@@ -1,13 +1,25 @@
 'use client';
 
 import React, { useState } from 'react';
+import { AxiosError } from 'axios';
 import { useI18n } from '@/lib/i18n/i18n-context';
-import { UploadCloud, CheckCircle2, AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import api from '@/lib/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ResumeUploadModalProps {
   isOpen: boolean;
-  onSuccess: (data: any) => void;
+  onSuccess: (data: unknown) => void;
   canClose?: boolean;
   onClose?: () => void;
 }
@@ -23,8 +35,6 @@ export function ResumeUploadModal({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -87,9 +97,11 @@ export function ResumeUploadModal({
         },
       });
       onSuccess(res.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string | string[] }>;
+      const msg = axiosErr?.response?.data?.message;
       setError(
-        err.response?.data?.message ||
+        (Array.isArray(msg) ? msg[0] : msg) ||
           (locale === 'bn'
             ? 'রিজিউম আপলোড বা পার্স করতে সমস্যা হয়েছে।'
             : 'Failed to upload or parse resume. Please check the PDF format.'),
@@ -100,52 +112,63 @@ export function ResumeUploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-md border border-[#e5e7eb] max-w-lg w-full p-6 shadow-2xl relative text-left">
-        {canClose && onClose && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-md"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-md bg-[#371ee1]/10 border border-[#371ee1]/20 flex items-center justify-center text-[#371ee1]">
+    <Dialog
+      open={isOpen}
+      disablePointerDismissal={!canClose}
+      onOpenChange={(open) => {
+        if (!open && canClose && onClose && !isUploading) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={canClose && !!onClose && !isUploading}
+        className="sm:max-w-lg p-6 gap-5"
+      >
+        <DialogHeader className="flex-row items-center gap-3 space-y-0 text-left">
+          <div className="w-10 h-10 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 leading-tight">
+          <div className="space-y-1">
+            <DialogTitle className="text-lg font-bold text-foreground leading-tight">
               {locale === 'bn' ? 'রিজিউম আপলোড করুন' : 'Upload Your Resume'}
-            </h3>
-            <p className="text-xs text-slate-500">
+            </DialogTitle>
+            <DialogDescription className="text-xs">
               {locale === 'bn'
                 ? 'এআই স্বয়ংক্রিয়ভাবে তথ্য এক্সট্র্যাক্ট করে আপনার প্রোফাইল তৈরি করবে'
                 : 'AI will parse your resume to build your autonomous application profile'}
-            </p>
+            </DialogDescription>
           </div>
-        </div>
+        </DialogHeader>
 
         {error && (
-          <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 flex items-center gap-2 text-red-700 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
+          <Alert variant="destructive" className="bg-destructive/5 border-destructive/25">
+            <AlertCircle className="w-4 h-4" />
+            <AlertDescription className="text-xs font-medium">{error}</AlertDescription>
+          </Alert>
         )}
 
         <div
+          role="button"
+          tabIndex={0}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-md p-8 text-center transition-all cursor-pointer ${
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              document.getElementById('resume-file-input')?.click();
+            }
+          }}
+          className={cn(
+            'border-2 border-dashed rounded-md p-8 text-center transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring',
             dragActive
-              ? 'border-[#371ee1] bg-[#371ee1]/5'
+              ? 'border-primary bg-primary/5'
               : file
-              ? 'border-emerald-500 bg-emerald-50/50'
-              : 'border-[#d1d5db] hover:border-[#371ee1] bg-[#f8f9fd]'
-          }`}
+                ? 'border-emerald-500 bg-emerald-50/50'
+                : 'border-border hover:border-primary bg-background',
+          )}
           onClick={() => document.getElementById('resume-file-input')?.click()}
         >
           <input
@@ -160,44 +183,47 @@ export function ResumeUploadModal({
           {file ? (
             <div className="space-y-1">
               <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-              <p className="text-sm font-semibold text-slate-900 truncate">
+              <p className="text-sm font-semibold text-foreground truncate">
                 {file.name}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {(file.size / 1024).toFixed(1)} KB —{' '}
-                <span className="text-[#371ee1] underline">Click to change</span>
+                <span className="text-primary underline">Click to change</span>
               </p>
             </div>
           ) : (
             <div className="space-y-2">
-              <UploadCloud className="w-10 h-10 text-slate-400 mx-auto" />
+              <UploadCloud className="w-10 h-10 text-muted-foreground mx-auto" />
               <div>
-                <p className="text-sm font-medium text-slate-800">
+                <p className="text-sm font-medium text-foreground">
                   {locale === 'bn'
                     ? 'পিডিএফ ফাইল ড্রপ করুন অথবা ক্লিক করে ব্রাউজ করুন'
                     : 'Drag & drop your PDF resume here, or browse'}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">PDF (Max 5MB)</p>
+                <p className="text-xs text-muted-foreground mt-1">PDF (Max 5MB)</p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-3">
+        <DialogFooter className="-mx-6 -mb-6 px-6 py-4">
           {canClose && onClose && (
-            <button
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isUploading}
-              className="px-4 py-2 rounded-md border border-[#e5e7eb] text-xs font-semibold text-slate-700 hover:bg-[#f8f9fd] transition-colors"
+              className="text-xs font-semibold cursor-pointer"
             >
               {t.common.cancel}
-            </button>
+            </Button>
           )}
 
-          <button
+          <Button
+            type="button"
             onClick={handleUpload}
             disabled={!file || isUploading}
-            className="flex items-center gap-2 px-5 py-2 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors"
+            className="gap-2 text-xs font-semibold cursor-pointer"
           >
             {isUploading ? (
               <>
@@ -214,10 +240,9 @@ export function ResumeUploadModal({
                 </span>
               </>
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
-

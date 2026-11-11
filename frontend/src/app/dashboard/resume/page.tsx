@@ -6,9 +6,19 @@ import { UploadCloud, FileText, CheckCircle2, Clock, Sparkles } from 'lucide-rea
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { ResumeUploadModal } from '@/components/dashboard/resume-upload-modal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface ResumeItem {
+  id: string;
+  fileName: string;
+  createdAt: string;
+}
 
 export default function ResumePage() {
-  const { t, locale } = useI18n();
+  const { locale } = useI18n();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -20,7 +30,7 @@ export default function ResumePage() {
     },
   });
 
-  const resumes = profileData?.user?.resumes || [];
+  const resumes: ResumeItem[] = profileData?.user?.resumes || [];
 
   const handleUploadSuccess = () => {
     setModalOpen(false);
@@ -31,87 +41,104 @@ export default function ResumePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            {t.nav.resume}
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            {locale === 'bn' ? 'রিজিউম' : 'Resume'}
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {locale === 'bn'
               ? 'আপনার জীবনবৃত্তান্ত (PDF) আপলোড করুন। আমাদের এআই এটি পার্স করে স্বয়ংক্রিয়ভাবে ফর্ম পূরণ করবে।'
               : 'Upload your latest PDF resume. Our dynamic AI engine extracts your experience, skills, and projects.'}
           </p>
         </div>
 
-        <button
+        <Button
+          type="button"
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto"
+          className="gap-2 text-xs font-semibold shadow-xs self-start sm:self-auto cursor-pointer"
         >
           <UploadCloud className="w-4 h-4" />
           <span>{locale === 'bn' ? 'নতুন রিজিউম আপলোড' : 'Upload New Resume'}</span>
-        </button>
+        </Button>
       </div>
 
       {/* Upload Box Trigger */}
-      <div
+      <Card
+        role="button"
+        tabIndex={0}
         onClick={() => setModalOpen(true)}
-        className="border-2 border-dashed border-[#d1d5db] hover:border-[#371ee1] bg-white rounded-md p-10 text-center transition-colors cursor-pointer group shadow-2xs"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setModalOpen(true);
+          }
+        }}
+        className="border-2 border-dashed border-border hover:border-primary ring-0 shadow-2xs cursor-pointer group transition-colors p-0"
       >
-        <div className="w-12 h-12 rounded-md bg-[#371ee1]/10 border border-[#371ee1]/20 flex items-center justify-center text-[#371ee1] mx-auto mb-4 group-hover:scale-105 transition-transform">
-          <UploadCloud className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-semibold text-slate-900 mb-1">
-          {locale === 'bn' ? 'পিডিএফ রিজিউম আপলোড করুন' : 'Click to upload your resume'}
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">
-          PDF format only (Max 5MB)
-        </p>
-        <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#371ee1] text-white text-xs font-semibold shadow-xs">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>{locale === 'bn' ? 'ফাইল নির্বাচন করুন' : 'Browse Files'}</span>
-        </span>
-      </div>
+        <CardContent className="p-10 text-center">
+          <div className="w-12 h-12 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto mb-4 group-hover:scale-105 transition-transform">
+            <UploadCloud className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            {locale === 'bn' ? 'পিডিএফ রিজিউম আপলোড করুন' : 'Click to upload your resume'}
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            PDF format only (Max 5MB)
+          </p>
+          <Button type="button" size="sm" className="gap-1.5 text-xs font-semibold shadow-xs pointer-events-none">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{locale === 'bn' ? 'ফাইল নির্বাচন করুন' : 'Browse Files'}</span>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Previous Resumes list */}
-      <div className="bg-white rounded-md border border-[#e5e7eb] shadow-2xs overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#e5e7eb]">
-          <h3 className="text-sm font-bold text-slate-900">
+      <Card className="p-0 shadow-2xs gap-0">
+        <CardHeader className="px-6 py-4 border-b border-border">
+          <CardTitle className="text-sm font-bold text-foreground">
             {locale === 'bn' ? 'আপলোডকৃত রিজিউম ফাইলসমূহ' : 'Uploaded Resumes'}
-          </h3>
-        </div>
+          </CardTitle>
+        </CardHeader>
 
-        <div className="p-6">
+        <CardContent className="p-6">
           {isLoading ? (
-            <p className="text-sm text-slate-500">{t.common.loading}</p>
+            <div className="space-y-3">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+            </div>
           ) : resumes.length === 0 ? (
-            <div className="text-center py-6 text-slate-500 text-sm">
-              <FileText className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
               <p>{locale === 'bn' ? 'এখনও কোন রিজিউম আপলোড করা হয়নি।' : 'No resumes uploaded yet.'}</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#f1f2f6]">
-              {resumes.map((res: any) => (
-                <div key={res.id} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-md bg-[#371ee1]/10 text-[#371ee1] flex items-center justify-center">
+            <div className="divide-y divide-border">
+              {resumes.map((res) => (
+                <div key={res.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{res.fileName}</p>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{res.fileName}</p>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{new Date(res.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <Badge
+                    variant="outline"
+                    className="gap-1 px-2.5 py-1 h-auto rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200"
+                  >
                     <CheckCircle2 className="w-3 h-3" />
                     <span>{locale === 'bn' ? 'সক্রিয়' : 'Active'}</span>
-                  </span>
+                  </Badge>
                 </div>
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <ResumeUploadModal
         isOpen={modalOpen}

@@ -1,14 +1,28 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { forgotPasswordSchema, resetPasswordSchema } from '@/lib/validations/auth.schema';
 import { Bot, Mail, Lock, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 export default function ForgotPasswordPage() {
   const { locale } = useI18n();
@@ -18,20 +32,10 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [otpCode, setOtpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
-
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  useEffect(() => {
-    if (step === 'reset') {
-      inputRefs.current[0]?.focus();
-    }
-  }, [step]);
-
-  const otpCode = otpDigits.join('');
 
   // 1. Request Reset OTP
   const forgotPasswordMutation = useMutation({
@@ -41,14 +45,14 @@ export default function ForgotPasswordPage() {
     },
     onSuccess: (data) => {
       setStep('reset');
-      setOtpDigits(['', '', '', '', '', '']);
+      setOtpCode('');
       setInfoMsg(
         locale === 'bn'
           ? 'পাসওয়ার্ড রিসেট করার ৬-সংখ্যার কোড আপনার ইমেইলে পাঠানো হয়েছে।'
           : data?.message || 'A 6-digit reset code has been sent to your email.',
       );
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string | string[] }>) => {
       const msg = err?.response?.data?.message || 'Failed to send reset code.';
       setErrorMsg(Array.isArray(msg) ? msg[0] : msg);
     },
@@ -74,7 +78,7 @@ export default function ForgotPasswordPage() {
         router.push('/sign-in');
       }, 1500);
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string | string[] }>) => {
       const msg = err?.response?.data?.message || 'Invalid or expired reset code.';
       setErrorMsg(Array.isArray(msg) ? msg[0] : msg);
     },
@@ -124,73 +128,26 @@ export default function ForgotPasswordPage() {
     resetPasswordMutation.mutate();
   };
 
-  // 6-box OTP handlers
-  const handleDigitChange = (index: number, value: string) => {
-    const cleanVal = value.replace(/\D/g, '');
-    const newDigits = [...otpDigits];
-
-    if (cleanVal.length > 1) {
-      const pastedChars = cleanVal.slice(0, 6).split('');
-      for (let i = 0; i < 6; i++) {
-        newDigits[i] = pastedChars[i] || '';
-      }
-      setOtpDigits(newDigits);
-      const nextIndex = Math.min(pastedChars.length, 5);
-      inputRefs.current[nextIndex]?.focus();
-      return;
-    }
-
-    newDigits[index] = cleanVal;
-    setOtpDigits(newDigits);
-
-    if (cleanVal && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleDigitPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pastedData) return;
-
-    const newDigits = [...otpDigits];
-    const chars = pastedData.split('');
-    chars.forEach((char, i) => {
-      if (i < 6) newDigits[i] = char;
-    });
-    setOtpDigits(newDigits);
-
-    const targetIndex = Math.min(chars.length, 5);
-    inputRefs.current[targetIndex]?.focus();
-  };
-
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-[#f8f9fd] relative">
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 py-12 bg-background relative">
       <div className="absolute top-6 right-6">
         <LanguageSwitcher />
       </div>
 
-      <div className="w-full max-w-[430px] space-y-6 bg-white border border-[#e2e5f1] p-8 rounded-md shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-        {/* Brand Header */}
-        <div className="space-y-3">
+      <Card className="w-full max-w-[430px] p-8 has-data-[slot=card-footer]:pb-8 gap-6 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+        <CardHeader className="p-0 space-y-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-primary font-bold text-lg"
+            className="inline-flex items-center gap-2 text-primary font-bold text-lg w-fit"
           >
-            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white">
+            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
               <Bot className="w-4 h-4" />
             </div>
-            <span className="text-[#0f172a] font-extrabold tracking-tight">Kormobot AI</span>
+            <span className="text-foreground font-extrabold tracking-tight">Kormobot AI</span>
           </Link>
 
-          <div className="pt-1">
-            <h2 className="text-2xl font-extrabold tracking-tight text-[#0f172a]">
+          <div className="pt-1 space-y-1">
+            <CardTitle className="text-2xl font-extrabold tracking-tight text-foreground">
               {step === 'request'
                 ? locale === 'bn'
                   ? 'পাসওয়ার্ড ভুলে গেছেন?'
@@ -198,8 +155,8 @@ export default function ForgotPasswordPage() {
                 : locale === 'bn'
                   ? 'নতুন পাসওয়ার্ড সেট করুন'
                   : 'Reset your password'}
-            </h2>
-            <p className="text-sm text-[#64748b] mt-1 font-normal">
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground font-normal">
               {step === 'request'
                 ? locale === 'bn'
                   ? 'আপনার অ্যাকাউন্টের ইমেইল লিখুন, আমরা একটি ওটিপি কোড পাঠাব'
@@ -207,173 +164,191 @@ export default function ForgotPasswordPage() {
                 : locale === 'bn'
                   ? `${email} ঠিকানায় পাঠানো কোড এবং নতুন পাসওয়ার্ড লিখুন`
                   : `Enter the 6-digit code sent to ${email} and your new password`}
-            </p>
+            </CardDescription>
           </div>
-        </div>
+        </CardHeader>
 
-        {/* Notifications */}
-        {errorMsg && (
-          <div className="p-3 rounded-md bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] text-xs font-medium flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 shrink-0 text-[#ef4444]" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+        <CardContent className="p-0 space-y-5">
+          {errorMsg && (
+            <Alert variant="destructive" className="bg-destructive/5 border-destructive/25">
+              <AlertCircle className="w-4 h-4" />
+              <AlertDescription className="text-xs font-medium">{errorMsg}</AlertDescription>
+            </Alert>
+          )}
 
-        {infoMsg && (
-          <div className="p-3 rounded-md bg-[#f0fdf4] border border-[#bbf7d0] text-[#15803d] text-xs font-medium flex items-center gap-2.5">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#22c55e]" />
-            <span>{infoMsg}</span>
-          </div>
-        )}
+          {infoMsg && (
+            <Alert className="bg-emerald-50 border-emerald-200 text-emerald-800 [&>svg]:text-emerald-600">
+              <CheckCircle2 className="w-4 h-4" />
+              <AlertDescription className="text-xs font-medium text-emerald-800">
+                {infoMsg}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {/* Step 1: Request Reset Code */}
-        {step === 'request' && (
-          <form onSubmit={handleRequestSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-                {locale === 'bn' ? 'ইমেইল ঠিকানা' : 'EMAIL ADDRESS'}
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-md border border-[#cbd5e1] bg-white text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={forgotPasswordMutation.isPending}
-              className="w-full py-2.5 rounded-md bg-primary text-white font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-1 cursor-pointer"
-            >
-              {forgotPasswordMutation.isPending && (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              )}
-              <span>
-                {forgotPasswordMutation.isPending
-                  ? locale === 'bn'
-                    ? 'পাঠানো হচ্ছে...'
-                    : 'Sending Code...'
-                  : locale === 'bn'
-                    ? 'রিসেট কোড পাঠান'
-                    : 'Send Reset Code'}
-              </span>
-            </button>
-          </form>
-        )}
-
-        {/* Step 2: 6-Box OTP + New Password */}
-        {step === 'reset' && (
-          <form onSubmit={handleResetSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-2 text-center">
-                {locale === 'bn' ? '৬-সংখ্যার কোড' : '6-DIGIT RESET CODE'}
-              </label>
-              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-                {otpDigits.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => {
-                      inputRefs.current[index] = el;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleDigitChange(index, e.target.value)}
-                    onKeyDown={(e) => handleDigitKeyDown(index, e)}
-                    onPaste={handleDigitPaste}
-                    className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-extrabold text-[#0f172a] bg-white border border-[#cbd5e1] rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-xs transition-all"
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-                {locale === 'bn' ? 'নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)' : 'NEW PASSWORD (MIN. 6 CHARACTERS)'}
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  minLength={6}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-9 py-2.5 rounded-md border border-[#cbd5e1] bg-white text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3.5 text-[#94a3b8] hover:text-[#475569] transition-colors"
+          {/* Step 1: Request Reset Code */}
+          {step === 'request' && (
+            <form onSubmit={handleRequestSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="reset-email"
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
+                  {locale === 'bn' ? 'ইমেইল ঠিকানা' : 'EMAIL ADDRESS'}
+                </Label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-3 pointer-events-none" />
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="h-10 pl-9 bg-background"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-1.5">
-                {locale === 'bn' ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'CONFIRM PASSWORD'}
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-[#94a3b8] absolute left-3 top-3.5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  minLength={6}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-md border border-[#cbd5e1] bg-white text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-                />
+              <Button
+                type="submit"
+                disabled={forgotPasswordMutation.isPending}
+                className="w-full h-10 font-semibold text-sm gap-2 mt-1 cursor-pointer"
+              >
+                {forgotPasswordMutation.isPending && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
+                <span>
+                  {forgotPasswordMutation.isPending
+                    ? locale === 'bn'
+                      ? 'পাঠানো হচ্ছে...'
+                      : 'Sending Code...'
+                    : locale === 'bn'
+                      ? 'রিসেট কোড পাঠান'
+                      : 'Send Reset Code'}
+                </span>
+              </Button>
+            </form>
+          )}
+
+          {/* Step 2: 6-Box OTP + New Password */}
+          {step === 'reset' && (
+            <form onSubmit={handleResetSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">
+                  {locale === 'bn' ? '৬-সংখ্যার কোড' : '6-DIGIT RESET CODE'}
+                </Label>
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={6}
+                    autoFocus
+                    inputMode="numeric"
+                    value={otpCode}
+                    onChange={(value) => setOtpCode(value.replace(/\D/g, ''))}
+                  >
+                    <InputOTPGroup className="gap-1.5 sm:gap-2">
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
+                        <InputOTPSlot
+                          key={index}
+                          index={index}
+                          className="w-11 h-13 sm:w-12 sm:h-14 text-xl font-extrabold rounded-md border border-input bg-background shadow-xs"
+                        />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={resetPasswordMutation.isPending || otpCode.length !== 6}
-              className="w-full py-2.5 rounded-md bg-primary text-white font-semibold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 mt-1 cursor-pointer"
-            >
-              {resetPasswordMutation.isPending && (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              )}
-              <span>
-                {resetPasswordMutation.isPending
-                  ? locale === 'bn'
-                    ? 'পরিবর্তন করা হচ্ছে...'
-                    : 'Resetting Password...'
-                  : locale === 'bn'
-                    ? 'পাসওয়ার্ড রিসেট করুন'
-                    : 'Reset Password & Log In'}
-              </span>
-            </button>
-          </form>
-        )}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="new-password"
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider"
+                >
+                  {locale === 'bn'
+                    ? 'নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)'
+                    : 'NEW PASSWORD (MIN. 6 CHARACTERS)'}
+                </Label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-3 pointer-events-none" />
+                  <Input
+                    id="new-password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="h-10 pl-9 pr-10 bg-background"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
 
-        <div className="pt-2 text-center">
-          <Link
-            href="/sign-in"
-            className="inline-flex items-center gap-1.5 text-xs text-[#64748b] hover:text-[#0f172a] font-medium transition-colors"
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="confirm-password"
+                  className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider"
+                >
+                  {locale === 'bn' ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'CONFIRM PASSWORD'}
+                </Label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-muted-foreground absolute left-3 top-3 pointer-events-none" />
+                  <Input
+                    id="confirm-password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="h-10 pl-9 bg-background"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={resetPasswordMutation.isPending || otpCode.length !== 6}
+                className="w-full h-10 font-semibold text-sm gap-2 mt-1 cursor-pointer"
+              >
+                {resetPasswordMutation.isPending && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
+                <span>
+                  {resetPasswordMutation.isPending
+                    ? locale === 'bn'
+                      ? 'পরিবর্তন করা হচ্ছে...'
+                      : 'Resetting Password...'
+                    : locale === 'bn'
+                      ? 'পাসওয়ার্ড রিসেট করুন'
+                      : 'Reset Password & Log In'}
+                </span>
+              </Button>
+            </form>
+          )}
+        </CardContent>
+
+        <CardFooter className="p-0 border-t-0 bg-transparent justify-center pt-1">
+          <Button
+            variant="link"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/sign-in" />}
+            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>{locale === 'bn' ? 'লগইন পৃষ্ঠায় ফিরে যান' : 'Back to Sign In'}</span>
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
-
