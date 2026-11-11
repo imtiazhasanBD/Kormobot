@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import {
   User,
@@ -11,6 +12,7 @@ import {
   Code,
   Sliders,
   Check,
+  CheckCircle2,
   Plus,
   Trash2,
   Save,
@@ -18,11 +20,13 @@ import {
   AlertCircle,
   Sparkles,
   ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { t, locale } = useI18n();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'personal' | 'summary' | 'experience' | 'projects' | 'education' | 'skills' | 'preferences'>('personal');
@@ -90,16 +94,58 @@ export default function ProfilePage() {
     updateProfileMutation.mutate(formData);
   };
 
+  const hasResume =
+    (profileResponse?.user?.resumes && profileResponse.user.resumes.length > 0) || false;
+
+  const checklist = [
+    {
+      id: 'personal',
+      name: locale === 'bn' ? 'মৌলিক তথ্য' : 'Basic Information',
+      complete: !!(formData.fullName && formData.phone && formData.location),
+      tab: 'personal',
+    },
+    {
+      id: 'summary',
+      name: locale === 'bn' ? 'পেশাদার সারসংক্ষেপ' : 'Summary',
+      complete: !!(formData.summary && formData.summary.trim().length > 10),
+      tab: 'summary',
+    },
+    {
+      id: 'experience',
+      name: locale === 'bn' ? 'কাজের অভিজ্ঞতা' : 'Work Experience',
+      complete: !!(formData.experience && formData.experience.length > 0),
+      tab: 'experience',
+    },
+    {
+      id: 'projects',
+      name: locale === 'bn' ? 'প্রজেক্টসমূহ' : 'Projects',
+      complete: !!(formData.projects && formData.projects.length > 0),
+      tab: 'projects',
+    },
+    {
+      id: 'education',
+      name: locale === 'bn' ? 'শিক্ষাগত যোগ্যতা' : 'Education',
+      complete: !!(formData.education && formData.education.length > 0),
+      tab: 'education',
+    },
+    {
+      id: 'skills',
+      name: locale === 'bn' ? 'দক্ষতা সমূহ' : 'Skills',
+      complete: !!(formData.skills && formData.skills.length > 0),
+      tab: 'skills',
+    },
+    {
+      id: 'resume',
+      name: locale === 'bn' ? 'রিজিউম' : 'Resume',
+      complete: hasResume,
+      tab: 'resume',
+    },
+  ];
+
   const calculateCompleteness = () => {
-    let score = 0;
-    if (formData.fullName) score += 15;
-    if (formData.phone) score += 15;
-    if (formData.location) score += 10;
-    if (formData.summary) score += 10;
-    if (formData.skills && formData.skills.length > 0) score += 20;
-    if (formData.experience && formData.experience.length > 0) score += 15;
-    if (formData.education && formData.education.length > 0) score += 15;
-    return score;
+    const total = checklist.length;
+    const completed = checklist.filter((item) => item.complete).length;
+    return Math.round((completed / total) * 100);
   };
 
   const completeness = calculateCompleteness();
@@ -205,61 +251,188 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Completeness badge */}
-          <div className="inline-flex items-center gap-3 bg-white px-4 py-2 rounded-md border border-[#e5e7eb] shadow-2xs">
-            <div className="w-8 h-8 rounded-full border-2 border-[#371ee1] flex items-center justify-center font-bold text-xs text-[#371ee1]">
-              {completeness}%
-            </div>
-            <div className="text-left">
-              <div className="text-xs font-semibold text-slate-900">{t.profile.completeness}</div>
-              <div className="text-[11px] text-slate-500">
-                {completeness >= 80 ? 'Ready to auto-apply' : 'Add more details'}
+        <button
+          onClick={handleSave}
+          disabled={updateProfileMutation.isPending}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-auto"
+        >
+          {updateProfileMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saveSuccess ? (
+            <Check className="w-4 h-4 text-emerald-300" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span>{saveSuccess ? 'Saved!' : t.common.save}</span>
+        </button>
+      </div>
+
+      {/* Main Grid: Completeness Card (Sidebar) + Tabbed Editor */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Profile Completeness Card */}
+        <div className="lg:col-span-4 bg-white rounded-md border border-[#e2e5f1] p-5 shadow-2xs space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              {t.profile.completeness}
+            </h3>
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#eef0fe] text-[#371ee1]">
+              {checklist.filter((c) => c.complete).length}/{checklist.length}
+            </span>
+          </div>
+
+          {/* Circular Meter + Status Message */}
+          <div className="flex items-center gap-4 p-3.5 rounded-md bg-[#f8f9fd] border border-[#e2e5f1]">
+            <div className="relative w-18 h-18 shrink-0 flex items-center justify-center">
+              <svg className="w-18 h-18 -rotate-90" viewBox="0 0 36 36">
+                <path
+                  className="text-[#e2e5f1]"
+                  strokeWidth="3.2"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-[#371ee1] transition-all duration-500 ease-out"
+                  strokeDasharray={`${completeness}, 100`}
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center text-center">
+                <span className="text-sm font-bold text-[#371ee1] leading-none">
+                  {completeness}%
+                </span>
+                <span className="text-[9px] text-slate-500 font-medium mt-0.5">
+                  {locale === 'bn' ? 'সম্পূর্ণ' : 'Complete'}
+                </span>
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 font-bold text-slate-900 text-sm">
+                <span>
+                  {completeness >= 80
+                    ? locale === 'bn'
+                      ? 'দারুণ হয়েছে!'
+                      : 'Great job!'
+                    : locale === 'bn'
+                    ? 'প্রায় প্রস্তুত!'
+                    : 'Getting close!'}
+                </span>
+                <span>{completeness >= 80 ? '🎉' : '✨'}</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5 leading-snug">
+                {completeness >= 80
+                  ? locale === 'bn'
+                    ? 'আপনার প্রোফাইল বেশ শক্তিশালী।'
+                    : 'Your profile is ready for AI auto-apply.'
+                  : locale === 'bn'
+                  ? 'সবগুলো ধাপ সম্পূর্ণ করুন।'
+                  : 'Complete missing sections for better matches.'}
+              </p>
             </div>
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={updateProfileMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold shadow-xs transition-colors"
-          >
-            {updateProfileMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : saveSuccess ? (
-              <Check className="w-4 h-4 text-emerald-300" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            <span>{saveSuccess ? 'Saved!' : t.common.save}</span>
-          </button>
-        </div>
-      </div>
+          <div className="h-px bg-[#e2e5f1]" />
 
-      {/* Tabs */}
-      <div className="bg-white rounded-md border border-[#e5e7eb] shadow-2xs overflow-hidden">
-        <div className="flex border-b border-[#e5e7eb] overflow-x-auto scrollbar-none">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-5 py-3.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${
-                  active
-                    ? 'border-[#371ee1] text-[#371ee1] bg-[#371ee1]/5'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-[#f8f9fd]'
-                }`}
+          {/* Checklist Items */}
+          <div className="space-y-2.5">
+            {checklist.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => {
+                  if (item.tab === 'resume') {
+                    router.push('/dashboard/resume');
+                  } else {
+                    setActiveTab(item.tab as any);
+                  }
+                }}
+                className="flex items-center justify-between text-xs py-1 px-2 -mx-2 rounded-md hover:bg-[#f8f9fd] cursor-pointer transition-colors"
               >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+                <div className="flex items-center gap-2.5">
+                  {item.complete ? (
+                    <CheckCircle2 className="w-4 h-4 text-[#371ee1] shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                  )}
+                  <span
+                    className={`font-medium ${
+                      item.complete ? 'text-slate-800' : 'text-slate-500'
+                    }`}
+                  >
+                    {item.name}
+                  </span>
+                </div>
+
+                {!item.complete ? (
+                  <span className="text-[11px] font-semibold text-[#371ee1] hover:underline">
+                    {locale === 'bn' ? 'আপডেট' : 'Update'}
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-slate-400">
+                    {locale === 'bn' ? 'সম্পন্ন' : 'Done'}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Primary Action Button */}
+          {completeness < 100 ? (
+            <button
+              onClick={() => {
+                const firstIncomplete = checklist.find((c) => !c.complete);
+                if (firstIncomplete) {
+                  if (firstIncomplete.tab === 'resume') {
+                    router.push('/dashboard/resume');
+                  } else {
+                    setActiveTab(firstIncomplete.tab as any);
+                  }
+                }
+              }}
+              className="w-full py-2.5 px-4 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold transition-colors shadow-xs flex items-center justify-center gap-2"
+            >
+              <span>{locale === 'bn' ? 'প্রোফাইল উন্নত করুন' : 'Improve Profile'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/dashboard/jobs')}
+              className="w-full py-2.5 px-4 rounded-md bg-[#eef0fe] hover:bg-[#e2e5f1] text-[#371ee1] text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-[#371ee1]/20"
+            >
+              <span>{locale === 'bn' ? 'চাকরি খুঁজুন' : 'Browse Matching Jobs'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        <div className="p-6">
+        {/* Right Column: Tabbed Editor */}
+        <div className="lg:col-span-8 bg-white rounded-md border border-[#e2e5f1] shadow-2xs overflow-hidden">
+          <div className="flex border-b border-[#e5e7eb] overflow-x-auto scrollbar-none">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-3.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${
+                    active
+                      ? 'border-[#371ee1] text-[#371ee1] bg-[#371ee1]/5'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-[#f8f9fd]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-6">
           {/* PERSONAL INFO TAB */}
           {activeTab === 'personal' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
@@ -697,6 +870,7 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
