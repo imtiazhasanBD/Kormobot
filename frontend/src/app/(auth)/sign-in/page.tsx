@@ -81,7 +81,7 @@ export default function SignInPage() {
         <LanguageSwitcher />
       </div>
 
-      <Card className="w-full max-w-[430px] p-8 has-data-[slot=card-footer]:pb-8 gap-6 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+      <Card className="w-full max-w-[430px] p-8 has-data-[slot=card-footer]:pb-8 gap-6 shadow-sm">
         <CardHeader className="p-0 space-y-3">
           <Link
             href="/"

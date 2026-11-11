@@ -157,7 +157,7 @@ export default function SignUpPage() {
         <LanguageSwitcher />
       </div>
 
-      <Card className="w-full max-w-[440px] p-8 has-data-[slot=card-footer]:pb-8 gap-6 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+      <Card className="w-full max-w-[440px] p-8 has-data-[slot=card-footer]:pb-8 gap-6 shadow-sm">
         <CardHeader className="p-0 space-y-3">
           <Link
             href="/"
@@ -201,9 +201,9 @@ export default function SignUpPage() {
           )}
 
           {infoMsg && (
-            <Alert className="bg-emerald-50 border-emerald-200 text-emerald-800 [&>svg]:text-emerald-600">
+            <Alert className="bg-success-muted border-success-border text-success-muted-foreground [&>svg]:text-success">
               <CheckCircle2 className="w-4 h-4" />
-              <AlertDescription className="text-xs font-medium text-emerald-800">
+              <AlertDescription className="text-xs font-medium text-success-muted-foreground">
                 {infoMsg}
               </AlertDescription>
             </Alert>

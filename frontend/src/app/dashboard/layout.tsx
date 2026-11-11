@@ -121,7 +121,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ? variant === 'primary'
           ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 font-semibold'
           : 'bg-primary/10 text-primary font-semibold'
-        : 'text-slate-600 hover:text-foreground hover:bg-muted',
+        : 'text-muted-foreground hover:text-sidebar-foreground hover:bg-muted',
     );
 
     const iconClass = cn(
@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         ? 'text-primary-foreground'
         : active
           ? 'text-primary'
-          : 'text-slate-500',
+          : 'text-muted-foreground',
     );
 
     const linkElement = (

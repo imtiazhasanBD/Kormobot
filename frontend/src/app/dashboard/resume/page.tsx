@@ -128,7 +128,7 @@ export default function ResumePage() {
                   </div>
                   <Badge
                     variant="outline"
-                    className="gap-1 px-2.5 py-1 h-auto rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200"
+                    className="gap-1 px-2.5 py-1 h-auto rounded-md text-[11px] font-semibold bg-success-muted text-success-muted-foreground border-success-border"
                   >
                     <CheckCircle2 className="w-3 h-3" />
                     <span>{locale === 'bn' ? 'সক্রিয়' : 'Active'}</span>

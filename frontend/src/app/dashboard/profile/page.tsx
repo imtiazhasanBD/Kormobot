@@ -328,7 +328,7 @@ export default function ProfilePage() {
           {updateProfileMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : saveSuccess ? (
-            <Check className="w-4 h-4 text-emerald-300" />
+            <Check className="w-4 h-4 text-primary-foreground" />
           ) : (
             <Save className="w-4 h-4" />
           )}
@@ -430,7 +430,7 @@ export default function ProfilePage() {
                     {item.complete ? (
                       <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                     ) : (
-                      <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-warning shrink-0" />
                     )}
                     <span
                       className={cn(

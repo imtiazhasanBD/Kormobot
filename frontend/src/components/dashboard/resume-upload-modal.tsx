@@ -166,7 +166,7 @@ export function ResumeUploadModal({
             dragActive
               ? 'border-primary bg-primary/5'
               : file
-                ? 'border-emerald-500 bg-emerald-50/50'
+                ? 'border-success bg-success-muted/60'
                 : 'border-border hover:border-primary bg-background',
           )}
           onClick={() => document.getElementById('resume-file-input')?.click()}
@@ -182,7 +182,7 @@ export function ResumeUploadModal({
 
           {file ? (
             <div className="space-y-1">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+              <CheckCircle2 className="w-8 h-8 text-success mx-auto" />
               <p className="text-sm font-semibold text-foreground truncate">
                 {file.name}
               </p>

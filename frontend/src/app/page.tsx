@@ -64,7 +64,7 @@ export default function Home() {
         {/* Hero Title with Strong Hierarchy */}
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground leading-[1.14] mb-6">
           Find & Auto-Apply to{' '}
-          <span className="bg-gradient-to-r from-primary via-[#5237ea] to-[#7c3aed] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-primary via-brand-mid to-brand-end bg-clip-text text-transparent">
             Jobs
           </span>
         </h1>
@@ -79,7 +79,7 @@ export default function Home() {
             size="lg"
             nativeButton={false}
             render={<Link href="/sign-up" />}
-            className="w-full sm:w-auto gap-2 px-6 py-2.5 h-10 text-sm font-semibold shadow-[0_2px_6px_rgba(55,30,225,0.25)]"
+            className="w-full sm:w-auto gap-2 px-6 py-2.5 h-10 text-sm font-semibold shadow-sm shadow-primary/25"
           >
             <span>{t.common.register}</span>
             <ArrowRight className="w-4 h-4" />
@@ -99,7 +99,7 @@ export default function Home() {
         {/* Feature Cards Grid (Minimal Corner Rounding: max md) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5 mt-16 w-full text-left">
           {/* Card 1 */}
-          <Card className="p-0 shadow-[0_2px_6px_rgba(15,23,42,0.03)] hover:border-slate-300 transition-all">
+          <Card className="p-0 shadow-xs hover:border-ring/40 transition-all">
             <CardContent className="p-5">
               <div className="w-8 h-8 rounded-md bg-accent text-primary flex items-center justify-center mb-3.5 border border-primary/15">
                 <Zap className="w-4 h-4" />
@@ -112,9 +112,9 @@ export default function Home() {
           </Card>
 
           {/* Card 2 */}
-          <Card className="p-0 shadow-[0_2px_6px_rgba(15,23,42,0.03)] hover:border-slate-300 transition-all">
+          <Card className="p-0 shadow-xs hover:border-ring/40 transition-all">
             <CardContent className="p-5">
-              <div className="w-8 h-8 rounded-md bg-[#eff8ff] text-[#0284c7] flex items-center justify-center mb-3.5 border border-[#b9e6fe]">
+              <div className="w-8 h-8 rounded-md bg-info-muted text-info-muted-foreground flex items-center justify-center mb-3.5 border border-info-border">
                 <Cpu className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-sm text-foreground mb-1">Dynamic AI Engine</h3>
@@ -125,9 +125,9 @@ export default function Home() {
           </Card>
 
           {/* Card 3 */}
-          <Card className="p-0 shadow-[0_2px_6px_rgba(15,23,42,0.03)] hover:border-slate-300 transition-all">
+          <Card className="p-0 shadow-xs hover:border-ring/40 transition-all">
             <CardContent className="p-5">
-              <div className="w-8 h-8 rounded-md bg-[#ecfdf3] text-[#16a34a] flex items-center justify-center mb-3.5 border border-[#a6f4c5]">
+              <div className="w-8 h-8 rounded-md bg-success-muted text-success-muted-foreground flex items-center justify-center mb-3.5 border border-success-border">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-sm text-foreground mb-1">Zero-Cost Setup</h3>
