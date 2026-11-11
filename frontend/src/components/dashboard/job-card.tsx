@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import {
   MapPin,
@@ -71,6 +71,7 @@ export function JobCard({
   onApplyWithAi,
 }: JobCardProps) {
   const { t, locale } = useI18n();
+  const [logoError, setLogoError] = useState(false);
 
   const platformMeta = PLATFORM_LABELS[job.platform.toLowerCase()] || {
     name: job.platform,
@@ -91,12 +92,19 @@ export function JobCard({
       {/* Top Row: Company Logo, Title, Company & Match Score */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3.5 min-w-0">
-          <div className="w-11 h-11 rounded-md bg-[#eef0fe] border border-[#371ee1]/15 flex items-center justify-center text-[#371ee1] font-bold text-sm shrink-0">
-            {job.companyLogo ? (
+          <div
+            className={`w-11 h-11 rounded-md border flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${
+              job.companyLogo && !logoError
+                ? 'bg-white border-[#e2e5f1]'
+                : 'bg-[#eef0fe] border-[#371ee1]/15 text-[#371ee1]'
+            }`}
+          >
+            {job.companyLogo && !logoError ? (
               <img
                 src={job.companyLogo}
                 alt={job.company}
-                className="w-7 h-7 object-contain rounded-sm"
+                onError={() => setLogoError(true)}
+                className="w-8 h-8 object-contain"
               />
             ) : (
               companyInitials

@@ -16,11 +16,27 @@ import {
   CheckCircle2,
   Layers,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { JobCard, JobItem } from '@/components/dashboard/job-card';
 
 type PlatformFilter = 'all' | 'greenhouse' | 'lever' | 'workable' | 'wellfound' | 'linkedin';
+
+function getPageNumbers(current: number, total: number): Array<number | 'ellipsis'> {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const pages: Array<number | 'ellipsis'> = [1];
+  if (current > 3) pages.push('ellipsis');
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('ellipsis');
+  pages.push(total);
+  return pages;
+}
 
 export default function JobsPage() {
   const { t, locale } = useI18n();
@@ -56,7 +72,7 @@ export default function JobsPage() {
       const params: Record<string, string | number> = {
         platform: selectedPlatform,
         page,
-        limit: 15,
+        limit: 10,
       };
       if (appliedQuery) params.q = appliedQuery;
       if (locationFilter) params.location = locationFilter;
@@ -164,16 +180,16 @@ export default function JobsPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-white rounded-md border border-[#e2e5f1] p-5 sm:p-6 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#eef0fe] text-[#371ee1] text-[11px] font-semibold mb-2">
+          {/* <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#eef0fe] text-[#371ee1] text-[11px] font-semibold mb-2">
             <Sparkles className="w-3.5 h-3.5" />
             <span>
               {jobsData?.provider
                 ? `Powered by ${jobsData.provider.toUpperCase()} Search`
                 : 'AI Job Discovery'}
             </span>
-          </div>
+          </div> */}
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">
             {t.jobs.title}
           </h2>
@@ -386,26 +402,69 @@ export default function JobsPage() {
                 ))}
               </div>
 
-              {/* Pagination */}
+              {/* Numbered Pagination */}
               {jobsData?.pagination && jobsData.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <button
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="px-3.5 py-2 rounded-md border border-[#e2e5f1] bg-white text-xs font-semibold text-slate-700 disabled:opacity-50 hover:bg-[#f8f9fd]"
-                  >
-                    Previous
-                  </button>
+                <div className="bg-white rounded-md border border-[#e2e5f1] px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
                   <span className="text-xs text-slate-500">
-                    Page {jobsData.pagination.page} of {jobsData.pagination.totalPages}
+                    {locale === 'bn'
+                      ? `পৃষ্ঠা ${jobsData.pagination.page} / ${jobsData.pagination.totalPages} (মোট ${jobsData.pagination.total}টি চাকরি)`
+                      : `Showing page ${jobsData.pagination.page} of ${jobsData.pagination.totalPages} (${jobsData.pagination.total} jobs)`}
                   </span>
-                  <button
-                    disabled={page >= jobsData.pagination.totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="px-3.5 py-2 rounded-md border border-[#e2e5f1] bg-white text-xs font-semibold text-slate-700 disabled:opacity-50 hover:bg-[#f8f9fd]"
-                  >
-                    Next
-                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      disabled={page <= 1}
+                      onClick={() => {
+                        setPage((p) => Math.max(1, p - 1));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      aria-label="Previous page"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-[#e2e5f1] bg-white text-xs font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f8f9fd] transition-colors"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">{locale === 'bn' ? 'পূর্ববর্তী' : 'Prev'}</span>
+                    </button>
+
+                    {getPageNumbers(jobsData.pagination.page, jobsData.pagination.totalPages).map(
+                      (item, idx) =>
+                        item === 'ellipsis' ? (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="px-2 py-1.5 text-xs font-semibold text-slate-400"
+                          >
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={item}
+                            onClick={() => {
+                              setPage(item);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`min-w-[32px] h-8 px-2.5 rounded-md text-xs font-semibold border transition-colors ${
+                              item === jobsData.pagination.page
+                                ? 'bg-[#371ee1] border-[#371ee1] text-white shadow-xs'
+                                : 'bg-white border-[#e2e5f1] text-slate-700 hover:bg-[#eef0fe] hover:text-[#371ee1] hover:border-[#371ee1]/30'
+                            }`}
+                          >
+                            {item}
+                          </button>
+                        ),
+                    )}
+
+                    <button
+                      disabled={page >= jobsData.pagination.totalPages}
+                      onClick={() => {
+                        setPage((p) => p + 1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      aria-label="Next page"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-[#e2e5f1] bg-white text-xs font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f8f9fd] transition-colors"
+                    >
+                      <span className="hidden sm:inline">{locale === 'bn' ? 'পরবর্তী' : 'Next'}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               )}
             </>

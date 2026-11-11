@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchService } from '../search/search.service';
 import { JobPlatform, NormalizedJobResult } from '../search/interfaces/search-provider.interface';
+import { enrichJobsWithLogos } from '../search/utils/logo-resolver';
 import { GetJobsQueryDto } from './dto/jobs.dto';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -56,7 +57,8 @@ export class JobsService {
         });
 
         activeProvider = searchRes.provider;
-        await this.upsertJobsForUser(userId, searchRes.results, profile);
+        const enrichedResults = await enrichJobsWithLogos(searchRes.results);
+        await this.upsertJobsForUser(userId, enrichedResults, profile);
         cacheHit = false;
       } catch (err: any) {
         this.logger.error(`Live job search failed: ${err.message}`);
@@ -208,6 +210,7 @@ export class JobsService {
         update: {
           title: item.title,
           company: item.company,
+          ...(item.companyLogo ? { companyLogo: item.companyLogo } : {}),
           location: item.location || null,
           salary: item.salary || null,
           jobType: item.jobType || null,
