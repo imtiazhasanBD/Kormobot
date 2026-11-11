@@ -14,7 +14,7 @@ export class GeminiProvider implements AiProvider {
     }
 
     try {
-      const model = process.env.AI_MODEL || 'gemini-1.5-flash';
+      const model = process.env.AI_MODEL || 'gemini-3.8-flash';
       const prompt = `You are an expert HR and resume parsing assistant. Extract all relevant details from the following resume text and respond ONLY with a raw valid JSON object (no markdown, no backticks, no explanations) matching this exact schema:
 {
   "fullName": "string",
@@ -65,13 +65,19 @@ ${resumeText}`;
       );
 
       const data = await res.json();
+      if (data?.error) {
+        throw new Error(`Gemini API Error: [${data.error.code}] ${data.error.message}`);
+      }
+
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) throw new Error('No content returned from Gemini');
+      if (!rawText) {
+        throw new Error(`No content returned from Gemini: ${JSON.stringify(data)}`);
+      }
 
       return JSON.parse(rawText) as ParsedResumeResult;
     } catch (err: any) {
       this.logger.error(`Gemini parse error: ${err.message}`);
-      return this.fallback(resumeText);
+      throw err;
     }
   }
 

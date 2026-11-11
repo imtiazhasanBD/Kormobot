@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Briefcase,
   FileText,
@@ -22,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { ResumeUploadModal } from '@/components/dashboard/resume-upload-modal';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -30,9 +32,25 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { t, locale, setLocale } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Fetch user profile to check if resume has been uploaded
+  const { data: profileData, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const res = await api.get('/users/profile');
+      return res.data;
+    },
+    retry: 1,
+  });
+
+  const hasResume =
+    (profileData?.user?.resumes && profileData.user.resumes.length > 0) || false;
+
+  const showOnboardingModal = !isProfileLoading && profileData && !hasResume;
 
   const navItems = [
     {
@@ -82,8 +100,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return pathname.startsWith(href);
   };
 
+  const handleOnboardingUploadSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fd] flex text-foreground font-sans antialiased">
+      {/* Non-closable Onboarding Modal for First Login when no resume exists */}
+      <ResumeUploadModal
+        isOpen={showOnboardingModal}
+        canClose={false}
+        onSuccess={handleOnboardingUploadSuccess}
+      />
+
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -94,7 +123,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-white border-r border-[#e5e7eb] flex flex-col transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-40 bg-white border-r border-[#e5e7eb] flex flex-col transition-all duration-300 ease-in-out ${
           collapsed ? 'w-20' : 'w-64'
         } ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -181,7 +210,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </span>
             </div>
             <div className="flex justify-between items-center text-xs text-slate-600 mb-2">
-              <span>Remaining: 5 / 5 free</span>
+              <span>
+                Remaining: {profileData?.user?.credits !== undefined ? profileData.user.credits : 5} / 5 free
+              </span>
             </div>
             <Link
               href="/dashboard/billing"
@@ -285,4 +316,3 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     </div>
   );
 }
-

@@ -37,7 +37,9 @@ export interface TranslationSchema {
     title: string;
     completeness: string;
     personalTab: string;
+    summaryTab: string;
     experienceTab: string;
+    projectsTab: string;
     educationTab: string;
     skillsTab: string;
     preferencesTab: string;
@@ -91,7 +93,9 @@ export const translations: Record<Locale, TranslationSchema> = {
       title: 'Your Profile',
       completeness: 'Profile Completeness',
       personalTab: 'Personal Info',
+      summaryTab: 'Professional Summary',
       experienceTab: 'Experience',
+      projectsTab: 'Projects',
       educationTab: 'Education',
       skillsTab: 'Skills',
       preferencesTab: 'Preferences',
@@ -143,7 +147,9 @@ export const translations: Record<Locale, TranslationSchema> = {
       title: 'আপনার প্রোফাইল',
       completeness: 'প্রোফাইল সম্পূর্ণতা',
       personalTab: 'ব্যক্তিগত তথ্য',
+      summaryTab: 'পেশাদার সারসংক্ষেপ',
       experienceTab: 'কাজের অভিজ্ঞতা',
+      projectsTab: 'প্রজেক্টসমূহ',
       educationTab: 'শিক্ষাগত যোগ্যতা',
       skillsTab: 'দক্ষতা সমূহ',
       preferencesTab: 'পছন্দসমূহ',
