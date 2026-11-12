@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { SiteShell } from '@/components/site-shell';
+import { PlatformShowcase } from '@/components/landing/platform-showcase';
 import { Sparkles, ArrowRight, Zap, LayoutGrid, Cpu, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +108,8 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      <PlatformShowcase />
     </SiteShell>
   );
 }

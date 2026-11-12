@@ -1,4 +1,11 @@
-export type JobPlatform = 'greenhouse' | 'lever' | 'workable' | 'wellfound' | 'linkedin';
+export type JobPlatform =
+  | 'greenhouse'
+  | 'lever'
+  | 'workable'
+  | 'wellfound'
+  | 'linkedin'
+  | 'alljobs'
+  | 'bdjobs';
 
 export interface JobSearchQuery {
   query: string;

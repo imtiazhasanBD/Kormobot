@@ -45,7 +45,7 @@ export class JobsService {
       try {
         const platformsToQuery: JobPlatform[] = platformFilter
           ? [platformFilter]
-          : ['greenhouse', 'lever', 'workable', 'wellfound', 'linkedin'];
+          : ['greenhouse', 'lever', 'workable', 'wellfound', 'linkedin', 'alljobs', 'bdjobs'];
 
         const searchRes = await this.searchService.searchJobs({
           query: query.q || profile?.role || 'Full Stack Developer',
@@ -123,6 +123,8 @@ export class JobsService {
       workable: 0,
       wellfound: 0,
       linkedin: 0,
+      alljobs: 0,
+      bdjobs: 0,
     };
     for (const row of platformCountsRaw) {
       platformCounts[row.platform] = row._count.id;

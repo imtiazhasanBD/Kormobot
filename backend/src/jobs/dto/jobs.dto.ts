@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const GetJobsQuerySchema = z.object({
   q: z.string().trim().optional(),
   platform: z
-    .enum(['all', 'greenhouse', 'lever', 'workable', 'wellfound', 'linkedin'])
+    .enum(['all', 'greenhouse', 'lever', 'workable', 'wellfound', 'linkedin', 'alljobs', 'bdjobs'])
     .optional()
     .default('all'),
   location: z.string().trim().optional(),

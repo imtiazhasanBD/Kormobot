@@ -22,7 +22,15 @@ import {
 import api from '@/lib/api';
 import { JobCard, JobItem } from '@/components/dashboard/job-card';
 
-type PlatformFilter = 'all' | 'greenhouse' | 'lever' | 'workable' | 'wellfound' | 'linkedin';
+type PlatformFilter =
+  | 'all'
+  | 'greenhouse'
+  | 'lever'
+  | 'workable'
+  | 'wellfound'
+  | 'linkedin'
+  | 'alljobs'
+  | 'bdjobs';
 
 function getPageNumbers(current: number, total: number): Array<number | 'ellipsis'> {
   if (total <= 7) {
@@ -143,7 +151,9 @@ export default function JobsPage() {
         (platformCounts.lever || 0) +
         (platformCounts.workable || 0) +
         (platformCounts.wellfound || 0) +
-        (platformCounts.linkedin || 0),
+        (platformCounts.linkedin || 0) +
+        (platformCounts.alljobs || 0) +
+        (platformCounts.bdjobs || 0),
     },
     {
       id: 'greenhouse',
@@ -174,6 +184,18 @@ export default function JobsPage() {
       label: 'LinkedIn',
       domain: 'linkedin.com/jobs',
       count: platformCounts.linkedin || 0,
+    },
+    {
+      id: 'alljobs',
+      label: locale === 'bn' ? 'অলজবস (বিডি)' : 'AllJobs (BD)',
+      domain: 'alljobs.teletalk.com.bd',
+      count: platformCounts.alljobs || 0,
+    },
+    {
+      id: 'bdjobs',
+      label: locale === 'bn' ? 'বিডিজবস' : 'BDJobs',
+      domain: 'bdjobs.com',
+      count: platformCounts.bdjobs || 0,
     },
   ];
 
@@ -228,7 +250,7 @@ export default function JobsPage() {
       </div>
 
       {/* Selectable Platform Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
         {platforms.map((p) => {
           const active = selectedPlatform === p.id;
           return (

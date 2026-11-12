@@ -62,6 +62,14 @@ const PLATFORM_LABELS: Record<string, { name: string; badgeClass: string }> = {
     name: 'LinkedIn',
     badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
   },
+  alljobs: {
+    name: 'AllJobs (BD)',
+    badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+  },
+  bdjobs: {
+    name: 'BDJobs',
+    badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+  },
 };
 
 export function JobCard({
@@ -233,7 +241,7 @@ export function JobCard({
             <span>{job.savedStatus ? t.jobs.saved : t.jobs.saveForLater}</span>
           </button>
 
-          {onApplyWithAi && (
+          {onApplyWithAi && job.platform !== 'alljobs' && job.platform !== 'bdjobs' && (
             <button
               onClick={() => onApplyWithAi(job)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#eef0fe] hover:bg-[#e2e5f1] text-[#371ee1] text-xs font-semibold border border-[#371ee1]/20 transition-colors"

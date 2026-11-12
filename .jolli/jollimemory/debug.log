@@ -1,0 +1,10 @@
+[2026-11-12T14:28:27.843Z] INFO  [McpProxy] [trace=d6e078c4aabf4dfe7987aeedd16b9c3d] Spawned MCP daemon (pid 138779) for /run/media/imtiazbd/Development/HTML/New_Devolop/ai-job-application
+[2026-11-12T14:28:28.971Z] INFO  [StorageFactory] [trace=ce584de9709491af839cb2c2b88d901b] StorageFactory.create: route=uncutover, projectPath=/run/media/imtiazbd/Development/HTML/New_Devolop/ai-job-application
+[2026-11-12T14:28:31.524Z] INFO  [McpServer] [trace=ce584de9709491af839cb2c2b88d901b] MCP runtime ready: 10/10 built-in (insideRepo=true) + 0 platform tool(s), gate=open, manifest=fetch-failed
+[2026-11-12T14:28:31.529Z] INFO  [McpDaemon] [trace=ce584de9709491af839cb2c2b88d901b] MCP daemon listening on /tmp/.jolli-mcp-1000/9604f88c4a13a971.sock (cwd=/run/media/imtiazbd/Development/HTML/New_Devolop/ai-job-application, version=0.99.17)
+[2026-11-12T14:28:31.598Z] INFO  [McpProxy] [trace=d6e078c4aabf4dfe7987aeedd16b9c3d] Attached to MCP daemon 138779 (v0.99.17) for /run/media/imtiazbd/Development/HTML/New_Devolop/ai-job-application
+[2026-11-12T14:28:32.069Z] INFO  [McpServer] [trace=ce584de9709491af839cb2c2b88d901b] MCP runtime ready: 10/10 built-in (insideRepo=true) + 0 platform tool(s), gate=open, manifest=fetch-failed
+[2026-11-12T14:28:32.134Z] INFO  [McpServer] MCP client connected: antigravity-client/v1.0.0 (unmapped — candidate for CLIENTINFO_AGENTS)
+[2026-11-12T14:33:55.039Z] INFO  [McpProxy] [trace=367e38747a1d9c0d82ab8b8acee9ae9e] Attached to MCP daemon 138779 (v0.99.17) for /run/media/imtiazbd/Development/HTML/New_Devolop/ai-job-application
+[2026-11-12T14:33:57.348Z] INFO  [McpServer] [trace=ce584de9709491af839cb2c2b88d901b] MCP runtime ready: 10/10 built-in (insideRepo=true) + 0 platform tool(s), gate=open, manifest=fetch-failed
+[2026-11-12T14:33:57.360Z] INFO  [McpServer] MCP client connected: antigravity-client/v1.0.0 (unmapped — candidate for CLIENTINFO_AGENTS)

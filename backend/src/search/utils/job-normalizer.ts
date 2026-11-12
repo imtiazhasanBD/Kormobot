@@ -6,6 +6,8 @@ export const PLATFORM_DOMAINS: Record<JobPlatform, string[]> = {
   workable: ['apply.workable.com'],
   wellfound: ['wellfound.com'],
   linkedin: ['linkedin.com/jobs/view'],
+  alljobs: ['alljobs.teletalk.com.bd'],
+  bdjobs: ['bdjobs.com'],
 };
 
 const KNOWN_TECH_SKILLS = [
