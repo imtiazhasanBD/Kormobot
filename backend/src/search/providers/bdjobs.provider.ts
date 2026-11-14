@@ -4,6 +4,7 @@ import {
   NormalizedJobResult,
   SearchProvider,
 } from '../interfaces/search-provider.interface';
+import { isJobCompatibleWithProfile } from '../utils/job-matching';
 
 interface BdJobsApiItem {
   Jobid?: string | number;
@@ -22,6 +23,7 @@ interface BdJobsApiItem {
   JobType?: string | null;
   Salary?: string | null;
   WorkPlace?: string | null;
+  Cat_id?: number | string | null;
 }
 
 const BDJOBS_API_URL = 'https://api.bdjobs.com/jobs/api/v1/JobSearch/GetJobSearch';
@@ -34,7 +36,7 @@ export class BdJobsProvider implements SearchProvider {
 
   async searchJobs(params: JobSearchQuery): Promise<NormalizedJobResult[]> {
     const limit = params.platforms?.length === 1 ? 40 : 25;
-    const primaryKeyword = (params.query || params.role || '').trim();
+    const primaryKeyword = (params.query || params.role || 'Full Stack Developer').trim();
 
     try {
       const collected = new Map<string, BdJobsApiItem>();
@@ -44,14 +46,26 @@ export class BdJobsProvider implements SearchProvider {
         if (item.Jobid) collected.set(String(item.Jobid), item);
       }
 
-      // Broaden once with first skill or general latest jobs if narrow keyword returned very few matches
-      if (collected.size < 8) {
-        const fallbackKeyword =
-          params.skills?.find((s) => s.trim().length > 2 && s.toLowerCase() !== primaryKeyword.toLowerCase()) || '';
-        const fallbackItems = await this.fetchSearchPage(fallbackKeyword, limit);
-        for (const item of fallbackItems) {
-          if (item.Jobid && !collected.has(String(item.Jobid))) {
-            collected.set(String(item.Jobid), item);
+      // Broaden with user's core skills or related tech roles if narrow keyword returned few matches
+      if (collected.size < 12) {
+        const fallbackCandidates = [
+          ...(params.skills || [])
+            .map((s) => s.replace(/\s*\(.*\)$/, '').trim())
+            .filter((s) => s.length > 2 && s.toLowerCase() !== primaryKeyword.toLowerCase()),
+          'React',
+          'Node.js',
+          'Frontend',
+          'Web Developer',
+          'Software Engineer',
+        ];
+
+        for (const kw of fallbackCandidates) {
+          if (collected.size >= limit) break;
+          const fallbackItems = await this.fetchSearchPage(kw, limit);
+          for (const item of fallbackItems) {
+            if (item.Jobid && !collected.has(String(item.Jobid))) {
+              collected.set(String(item.Jobid), item);
+            }
           }
         }
       }
@@ -59,10 +73,11 @@ export class BdJobsProvider implements SearchProvider {
       const normalized = Array.from(collected.values())
         .map((item) => this.toNormalizedJob(item))
         .filter((job): job is NormalizedJobResult => job !== null)
+        .filter((job) => isJobCompatibleWithProfile(job, { role: params.role, skills: params.skills }).compatible)
         .slice(0, limit);
 
       this.logger.log(
-        `BDJobs fetched ${normalized.length} jobs (keyword="${primaryKeyword || 'latest'}")`,
+        `BDJobs fetched ${normalized.length} matched jobs (keyword="${primaryKeyword}")`,
       );
       return normalized;
     } catch (err: any) {
@@ -75,7 +90,7 @@ export class BdJobsProvider implements SearchProvider {
     const query = new URLSearchParams({
       Icat: '',
       industry: '',
-      category: '',
+      category: '8', // Category 8 = IT & Telecommunication in BDJobs
       org: '',
       jobNature: '',
       Fcat: '',
@@ -131,6 +146,11 @@ export class BdJobsProvider implements SearchProvider {
 
   private toNormalizedJob(item: BdJobsApiItem): NormalizedJobResult | null {
     if (item.OnlineJob === false) return null;
+
+    // Reject non-IT categories (Category 8 is IT / Software in BDJobs)
+    if (item.Cat_id !== undefined && item.Cat_id !== null && Number(item.Cat_id) !== 8) {
+      return null;
+    }
 
     if (item.deadlineDB) {
       const d = new Date(item.deadlineDB);

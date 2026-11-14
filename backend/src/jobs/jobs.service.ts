@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SearchService } from '../search/search.service';
 import { JobPlatform, NormalizedJobResult } from '../search/interfaces/search-provider.interface';
 import { enrichJobsWithLogos } from '../search/utils/logo-resolver';
+import { isJobCompatibleWithProfile, computeJobMatchScore } from '../search/utils/job-matching';
 import { GetJobsQueryDto } from './dto/jobs.dto';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -29,6 +30,7 @@ export class JobsService {
       where: {
         userId,
         isClosed: false,
+        matchScore: { gte: 45 },
         ...(platformFilter ? { platform: platformFilter } : {}),
         fetchedAt: { gte: sixHoursAgo },
       },
@@ -72,6 +74,7 @@ export class JobsService {
       userId,
       isClosed: false,
       ...(platformFilter ? { platform: platformFilter } : {}),
+      ...(!query.q ? { matchScore: { gte: 45 } } : {}),
       ...(query.location
         ? { location: { contains: query.location, mode: 'insensitive' } }
         : {}),
@@ -138,7 +141,7 @@ export class JobsService {
       this.prisma.job.count({ where: whereClause }),
       this.prisma.job.groupBy({
         by: ['platform'],
-        where: { userId, isClosed: false } as any,
+        where: { userId, isClosed: false, matchScore: { gte: 45 } } as any,
         _count: { id: true },
       }),
       this.prisma.job.findFirst({
@@ -227,7 +230,21 @@ export class JobsService {
         continue;
       }
 
-      const matchScore = this.computeMatchScore(item, profile);
+      // Check profile compatibility (excludes non-tech & completely mismatched specialized stacks)
+      const compatibility = isJobCompatibleWithProfile(item, profile);
+      if (!compatibility.compatible) {
+        // If it was in the database and not saved, delete it so it never shows in active feed
+        await this.prisma.job.deleteMany({
+          where: {
+            userId,
+            jobUrl: item.jobUrl,
+            savedStatus: false,
+          },
+        });
+        continue;
+      }
+
+      const matchScore = computeJobMatchScore(item, profile);
       const parsedPostedAt = item.postedAt ? new Date(item.postedAt) : null;
       const validPostedAt =
         parsedPostedAt && !isNaN(parsedPostedAt.getTime()) ? parsedPostedAt : null;
@@ -277,38 +294,6 @@ export class JobsService {
         },
       });
     }
-  }
-
-  private computeMatchScore(
-    job: NormalizedJobResult,
-    profile: { role?: string | null; skills?: string[] } | null,
-  ): number {
-    if (!profile) return 68;
-
-    let score = 55;
-    const jobText = `${job.title} ${job.description || ''} ${job.tags.join(' ')}`.toLowerCase();
-
-    // Role match (+20 max)
-    if (profile.role) {
-      const roleTokens = profile.role
-        .toLowerCase()
-        .split(/[\s,/|-]+/)
-        .filter((w) => w.length > 2);
-      const roleMatches = roleTokens.filter((token) => job.title.toLowerCase().includes(token));
-      if (roleMatches.length > 0) {
-        score += Math.min(20, roleMatches.length * 8);
-      }
-    }
-
-    // Skills overlap (+23 max)
-    const userSkills = profile.skills || [];
-    if (userSkills.length > 0) {
-      const matchedSkills = userSkills.filter((s) => jobText.includes(s.toLowerCase()));
-      const ratio = matchedSkills.length / Math.min(userSkills.length, 8);
-      score += Math.round(ratio * 23);
-    }
-
-    return Math.min(98, Math.max(52, score));
   }
 }
 
