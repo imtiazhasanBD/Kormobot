@@ -87,14 +87,43 @@ export class JobsService {
         : {}),
     };
 
+    if (query.datePosted && query.datePosted !== 'all') {
+      const now = Date.now();
+      let threshold: Date | null = null;
+      if (query.datePosted === '24h') {
+        threshold = new Date(now - 24 * 60 * 60 * 1000);
+      } else if (query.datePosted === 'week') {
+        threshold = new Date(now - 7 * 24 * 60 * 60 * 1000);
+      } else if (query.datePosted === 'month') {
+        threshold = new Date(now - 30 * 24 * 60 * 60 * 1000);
+      }
+
+      if (threshold) {
+        whereClause.AND = [
+          ...(whereClause.AND || []),
+          {
+            OR: [
+              { postedAt: { gte: threshold } },
+              { AND: [{ postedAt: null }, { createdAt: { gte: threshold } }] },
+            ],
+          },
+        ];
+      }
+    }
+
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
+    const orderByClause: any[] =
+      query.sortBy === 'recent'
+        ? [{ postedAt: 'desc' }, { fetchedAt: 'desc' }, { matchScore: 'desc' }]
+        : [{ matchScore: 'desc' }, { postedAt: 'desc' }, { fetchedAt: 'desc' }];
+
     const [jobs, total, platformCountsRaw, latestJob] = await Promise.all([
       this.prisma.job.findMany({
         where: whereClause,
-        orderBy: [{ matchScore: 'desc' }, { fetchedAt: 'desc' }],
+        orderBy: orderByClause,
         skip,
         take: limit,
         include: {
@@ -185,6 +214,10 @@ export class JobsService {
     const now = new Date();
     for (const item of results) {
       const matchScore = this.computeMatchScore(item, profile);
+      const parsedPostedAt = item.postedAt ? new Date(item.postedAt) : null;
+      const validPostedAt =
+        parsedPostedAt && !isNaN(parsedPostedAt.getTime()) ? parsedPostedAt : null;
+
       await this.prisma.job.upsert({
         where: {
           userId_jobUrl: {
@@ -205,6 +238,7 @@ export class JobsService {
           description: item.description || null,
           tags: item.tags,
           matchScore,
+          postedAt: validPostedAt || now,
           jobUrl: item.jobUrl,
           sourceUrl: item.sourceUrl || item.jobUrl,
           fetchedAt: now,
@@ -220,6 +254,9 @@ export class JobsService {
           description: item.description || null,
           tags: item.tags,
           matchScore,
+          ...(parsedPostedAt && !isNaN(parsedPostedAt.getTime())
+            ? { postedAt: parsedPostedAt }
+            : {}),
           fetchedAt: now,
         },
       });

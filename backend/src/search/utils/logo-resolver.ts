@@ -47,33 +47,84 @@ function extractDomainCandidates(company: string, jobUrl: string): string[] {
   return Array.from(candidates);
 }
 
-async function extractOgLogoFromPage(jobUrl: string): Promise<string | null> {
+interface PageMetadata {
+  logo: string | null;
+  postedAt?: Date;
+}
+
+function parsePageDateString(raw: string): Date | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+
+  // 1. "5 days ago", "3 hours ago", "2 weeks ago", "1 month ago"
+  const rel = trimmed.match(/(\d+)\s+(minute|hour|day|week|month)s?\s+ago/i);
+  if (rel) {
+    const amount = parseInt(rel[1], 10);
+    const unit = rel[2].toLowerCase();
+    const now = Date.now();
+    let ms = 0;
+    if (unit === 'minute') ms = amount * 60 * 1000;
+    else if (unit === 'hour') ms = amount * 60 * 60 * 1000;
+    else if (unit === 'day') ms = amount * 24 * 60 * 60 * 1000;
+    else if (unit === 'week') ms = amount * 7 * 24 * 60 * 60 * 1000;
+    else if (unit === 'month') ms = amount * 30 * 24 * 60 * 60 * 1000;
+    return new Date(now - ms);
+  }
+
+  // 2. ISO or standard date strings (e.g. "2024-07-23T22:57:43+00:00", "2026-11-08")
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) return parsed;
+
+  return undefined;
+}
+
+async function extractPageMetadata(jobUrl: string): Promise<PageMetadata> {
   try {
     const res = await fetch(jobUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Kormobot/1.0)' },
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
       signal: AbortSignal.timeout(4500),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { logo: null };
 
     const html = await res.text();
+    let logo: string | null = null;
+    let postedAt: Date | undefined;
+
+    // 1. Extract published / posted date from LinkedIn posted-time-ago, time tags, meta or JSON-LD
+    const dateMatch =
+      html.match(/class=["'](?:[^"']*\s)?posted-time-ago__text(?:\s[^"']*)?["'][^>]*>\s*([^<]+)\s*<\/span>/i) ||
+      html.match(/<time[^>]+datetime=["']([^"']+)["'][^>]*>/i) ||
+      html.match(/<meta[^>]+property=["'](?:article:published_time|og:updated_time)["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["'](?:article:published_time|og:updated_time)["']/i) ||
+      html.match(/"(?:datePosted|datePublished)":\s*"([^"]+)"/i);
+
+    if (dateMatch?.[1]) {
+      postedAt = parsePageDateString(dateMatch[1]);
+    }
+
+    // 2. Extract logo from og:image or <img ...logo...>
     const ogMatch =
       html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
       html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
 
     const ogUrl = ogMatch?.[1]?.trim();
     if (ogUrl && ogUrl.startsWith('http') && !isGenericPlatformAsset(ogUrl)) {
-      return ogUrl;
+      logo = ogUrl;
+    } else {
+      const imgMatch = html.match(/<img[^>]+src=["'](https?:\/\/[^"']*logo[^"']*)["']/i);
+      const imgUrl = imgMatch?.[1]?.trim();
+      if (imgUrl && !isGenericPlatformAsset(imgUrl)) {
+        logo = imgUrl;
+      }
     }
 
-    const imgMatch = html.match(/<img[^>]+src=["'](https?:\/\/[^"']*logo[^"']*)["']/i);
-    const imgUrl = imgMatch?.[1]?.trim();
-    if (imgUrl && !isGenericPlatformAsset(imgUrl)) {
-      return imgUrl;
-    }
-
-    return null;
+    return { logo, postedAt };
   } catch {
-    return null;
+    return { logo: null };
   }
 }
 
@@ -94,17 +145,29 @@ async function resolveVerifiedFavicon(company: string, jobUrl: string): Promise<
   return null;
 }
 
-export async function resolveCompanyLogo(
-  job: Pick<NormalizedJobResult, 'platform' | 'company' | 'jobUrl' | 'companyLogo'>,
-): Promise<string | null> {
-  if (job.companyLogo) return job.companyLogo;
+export async function resolveCompanyLogoAndMetadata(
+  job: Pick<NormalizedJobResult, 'platform' | 'company' | 'jobUrl' | 'companyLogo' | 'postedAt'>,
+): Promise<{ logo: string | null; postedAt?: Date }> {
+  let logo = job.companyLogo || null;
+  let postedAt = job.postedAt ? new Date(job.postedAt) : undefined;
 
-  if (job.platform === 'greenhouse' || job.platform === 'wellfound') {
-    const pageLogo = await extractOgLogoFromPage(job.jobUrl);
-    if (pageLogo) return pageLogo;
+  if (
+    job.platform === 'greenhouse' ||
+    job.platform === 'wellfound' ||
+    job.platform === 'lever' ||
+    job.platform === 'workable' ||
+    job.platform === 'linkedin'
+  ) {
+    const pageMeta = await extractPageMetadata(job.jobUrl);
+    if (!logo && pageMeta.logo) logo = pageMeta.logo;
+    if (!postedAt && pageMeta.postedAt) postedAt = pageMeta.postedAt;
   }
 
-  return resolveVerifiedFavicon(job.company, job.jobUrl);
+  if (!logo) {
+    logo = await resolveVerifiedFavicon(job.company, job.jobUrl);
+  }
+
+  return { logo, postedAt };
 }
 
 export async function enrichJobsWithLogos(
@@ -116,8 +179,12 @@ export async function enrichJobsWithLogos(
     const batch = jobs.slice(i, i + concurrency);
     const settled = await Promise.allSettled(
       batch.map(async (job) => {
-        const logo = await resolveCompanyLogo(job);
-        return { ...job, companyLogo: logo || undefined };
+        const meta = await resolveCompanyLogoAndMetadata(job);
+        return {
+          ...job,
+          companyLogo: meta.logo || job.companyLogo || undefined,
+          postedAt: meta.postedAt || job.postedAt || undefined,
+        };
       }),
     );
     settled.forEach((outcome, offset) => {

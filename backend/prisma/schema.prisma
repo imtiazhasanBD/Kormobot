@@ -73,6 +73,7 @@ model Job {
   sourceUrl       String?
   appliedStatus   String   @default("none") // none, queued, submitted, failed, missing_info
   savedStatus     Boolean  @default(false)
+  postedAt        DateTime?
   fetchedAt       DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

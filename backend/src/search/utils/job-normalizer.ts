@@ -254,8 +254,83 @@ export async function executePlatformSearch(
   return results;
 }
 
+export interface RawSearchResult {
+  url: string;
+  title: string;
+  content: string;
+  published_date?: string | null;
+  publishedDate?: string | null;
+  date?: string | null;
+  page_age?: string | null;
+}
+
+export function extractPostedAt(
+  rawDate?: string | null,
+  text?: string | null,
+): Date | undefined {
+  if (rawDate) {
+    // Handle "3 days ago", "12 hours ago"
+    const relMatch = rawDate.match(
+      /\b(\d+)\s+(minute|hour|day|week|month)s?\s+ago\b/i,
+    );
+    if (relMatch) {
+      const amount = parseInt(relMatch[1], 10);
+      const unit = relMatch[2].toLowerCase();
+      const now = Date.now();
+      let ms = 0;
+      if (unit === 'minute') ms = amount * 60 * 1000;
+      else if (unit === 'hour') ms = amount * 60 * 60 * 1000;
+      else if (unit === 'day') ms = amount * 24 * 60 * 60 * 1000;
+      else if (unit === 'week') ms = amount * 7 * 24 * 60 * 60 * 1000;
+      else if (unit === 'month') ms = amount * 30 * 24 * 60 * 60 * 1000;
+      return new Date(now - ms);
+    }
+
+    const parsed = new Date(rawDate);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+
+  if (!text) return undefined;
+
+  // 1. Check relative expressions in snippet: "posted 3 days ago", "posted 5 hours ago"
+  const relSnippetMatch = text.match(
+    /\b(?:posted|published|updated|created)?\s*(\d+)\s+(minute|hour|day|week|month)s?\s+ago\b/i,
+  );
+  if (relSnippetMatch) {
+    const amount = parseInt(relSnippetMatch[1], 10);
+    const unit = relSnippetMatch[2].toLowerCase();
+    const now = Date.now();
+    let ms = 0;
+    if (unit === 'minute') ms = amount * 60 * 1000;
+    else if (unit === 'hour') ms = amount * 60 * 60 * 1000;
+    else if (unit === 'day') ms = amount * 24 * 60 * 60 * 1000;
+    else if (unit === 'week') ms = amount * 7 * 24 * 60 * 60 * 1000;
+    else if (unit === 'month') ms = amount * 30 * 24 * 60 * 60 * 1000;
+    return new Date(now - ms);
+  }
+
+  // 2. Check "posted today" / "posted yesterday"
+  if (/\b(?:posted|published)\s+today\b/i.test(text)) {
+    return new Date();
+  }
+  if (/\b(?:posted|published)\s+yesterday\b/i.test(text)) {
+    return new Date(Date.now() - 24 * 60 * 60 * 1000);
+  }
+
+  // 3. Check explicit date strings: "Posted on Nov 10, 2026" or "Date posted: October 15, 2026"
+  const explicitMatch = text.match(
+    /\b(?:posted|published|created|date posted)[:\s]+([A-Z][a-z]{2,8}\s+\d{1,2},?\s+\d{4})\b/i,
+  );
+  if (explicitMatch) {
+    const parsed = new Date(explicitMatch[1]);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+
+  return undefined;
+}
+
 export function normalizeSearchResult(
-  raw: { url: string; title: string; content: string },
+  raw: RawSearchResult,
   fallbackPlatform?: JobPlatform,
 ): NormalizedJobResult | null {
   if (!raw.url) return null;
@@ -274,6 +349,10 @@ export function normalizeSearchResult(
   const jobType = extractJobType(combined);
   const experienceLevel = extractExperienceLevel(title, raw.content || '');
   const salary = extractSalary(raw.content || '');
+  const postedAt = extractPostedAt(
+    raw.published_date || raw.publishedDate || raw.date || raw.page_age,
+    combined,
+  );
 
   return {
     platform,
@@ -285,6 +364,7 @@ export function normalizeSearchResult(
     experienceLevel,
     description: (raw.content || '').slice(0, 600).trim(),
     tags,
+    postedAt,
     jobUrl: raw.url,
     sourceUrl: raw.url,
   };

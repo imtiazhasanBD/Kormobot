@@ -65,7 +65,12 @@ export class TavilyProvider implements SearchProvider {
     }
 
     const data = await response.json();
-    const rawResults: Array<{ url: string; title: string; content: string }> = data.results || [];
+    const rawResults: Array<{
+      url: string;
+      title: string;
+      content: string;
+      published_date?: string;
+    }> = data.results || [];
     return rawResults
       .map((item) => normalizeSearchResult(item, platform))
       .filter((item): item is NormalizedJobResult => item !== null);

@@ -89,11 +89,23 @@ export class AllJobsProvider implements SearchProvider {
         }
       });
 
+      const govtResponsePromise = page
+        .waitForResponse(
+          (res) =>
+            res.url().includes('/api/v1/govt-jobs/org-list') &&
+            res.status() === 200,
+          { timeout: 15000 },
+        )
+        .catch(() => null);
+
       await page.goto(`${ALLJOBS_BASE_URL}/jobs/government`, {
-        waitUntil: 'networkidle',
-        timeout: 25000,
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
       });
-      await page.waitForTimeout(800);
+
+      // Await govt jobs API response if still in transit
+      await govtResponsePromise;
+      await page.waitForTimeout(1000);
 
       // Fallback to rendered DOM cards if API capture returned nothing
       let domFallbackJobs: NormalizedJobResult[] = [];
@@ -101,15 +113,15 @@ export class AllJobsProvider implements SearchProvider {
         domFallbackJobs = await this.extractDomJobs(page, 'government');
       }
 
-      // Check private jobs tab as well
+      // Check private jobs tab briefly without blocking government results
       try {
         await page.goto(`${ALLJOBS_BASE_URL}/jobs/private`, {
-          waitUntil: 'networkidle',
-          timeout: 15000,
+          waitUntil: 'domcontentloaded',
+          timeout: 3500,
         });
-        await page.waitForTimeout(500);
-      } catch (err: any) {
-        this.logger.warn(`AllJobs private tab load skipped: ${err.message}`);
+        await page.waitForTimeout(400);
+      } catch {
+        // Teletalk private tab is often down or slow; non-blocking fallback
       }
 
       const normalized: NormalizedJobResult[] = [
@@ -160,6 +172,10 @@ export class AllJobsProvider implements SearchProvider {
       const companyLogo = this.resolveLogoUrl(org.logo);
       const posts = Array.isArray(org.govt_jobs) ? org.govt_jobs : [];
 
+      const rawDate = org.job_created_at || (org as any).created_at;
+      const postedAt = rawDate ? new Date(rawDate) : undefined;
+      const validPostedAt = postedAt && !isNaN(postedAt.getTime()) ? postedAt : undefined;
+
       if (posts.length === 0) {
         results.push({
           platform: 'alljobs',
@@ -173,6 +189,7 @@ export class AllJobsProvider implements SearchProvider {
             org.website ? ` Website: ${org.website}` : ''
           }`,
           tags: [org.short_name || '', 'Bangladesh', 'Govt Job', 'AllJobs'].filter(Boolean),
+          postedAt: validPostedAt,
           jobUrl: `${ALLJOBS_BASE_URL}/jobs/government/${org.id}`,
           sourceUrl: `${ALLJOBS_BASE_URL}/jobs/government`,
         });
@@ -213,6 +230,7 @@ export class AllJobsProvider implements SearchProvider {
             org.short_name ? ` (${org.short_name})` : ''
           }. Post: ${title}${bnSuffix}.${org.website ? ` Official site: ${org.website}` : ''}`,
           tags,
+          postedAt: validPostedAt,
           jobUrl: `${ALLJOBS_BASE_URL}/jobs/government/${org.id}?jobId=${post.id}`,
           sourceUrl: `${ALLJOBS_BASE_URL}/jobs/government`,
         });

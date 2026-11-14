@@ -28,6 +28,7 @@ export interface NormalizedJobResult {
   experienceLevel?: string;
   description?: string;
   tags: string[];
+  postedAt?: Date | string;
   jobUrl: string;
   sourceUrl?: string;
 }

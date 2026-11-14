@@ -9,6 +9,7 @@ interface BdJobsApiItem {
   Jobid?: string | number;
   jobTitle?: string | null;
   companyName?: string | null;
+  publishDate?: string | null;
   deadline?: string | null;
   eduRec?: string | null;
   experience?: string | null;
@@ -160,6 +161,8 @@ export class BdJobsProvider implements SearchProvider {
       ),
     );
 
+    const postedAt = item.publishDate ? new Date(item.publishDate) : undefined;
+
     return {
       platform: 'bdjobs',
       title,
@@ -173,6 +176,7 @@ export class BdJobsProvider implements SearchProvider {
         summaryParts.join(' • ').slice(0, 1200) ||
         `${title} at ${company} listed on Bdjobs.com.`,
       tags,
+      postedAt: postedAt && !isNaN(postedAt.getTime()) ? postedAt : undefined,
       jobUrl: `${BDJOBS_BASE_URL}/h/details/${jobId}?ln=1`,
       sourceUrl: `${BDJOBS_BASE_URL}/h/jobs?lang=en`,
     };

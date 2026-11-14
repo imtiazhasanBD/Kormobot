@@ -54,6 +54,8 @@ export default function JobsPage() {
   const [appliedQuery, setAppliedQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('all');
+  const [datePostedFilter, setDatePostedFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('match');
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformFilter>('all');
   const [page, setPage] = useState(1);
   const [forceRefreshFlag, setForceRefreshFlag] = useState(false);
@@ -75,7 +77,17 @@ export default function JobsPage() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['jobs', selectedPlatform, appliedQuery, locationFilter, jobTypeFilter, page, forceRefreshFlag],
+    queryKey: [
+      'jobs',
+      selectedPlatform,
+      appliedQuery,
+      locationFilter,
+      jobTypeFilter,
+      datePostedFilter,
+      sortBy,
+      page,
+      forceRefreshFlag,
+    ],
     queryFn: async () => {
       const params: Record<string, string | number> = {
         platform: selectedPlatform,
@@ -85,6 +97,8 @@ export default function JobsPage() {
       if (appliedQuery) params.q = appliedQuery;
       if (locationFilter) params.location = locationFilter;
       if (jobTypeFilter !== 'all') params.jobType = jobTypeFilter;
+      if (datePostedFilter !== 'all') params.datePosted = datePostedFilter;
+      if (sortBy !== 'match') params.sortBy = sortBy;
       if (forceRefreshFlag) {
         params.refresh = 'true';
         setForceRefreshFlag(false);
@@ -320,7 +334,10 @@ export default function JobsPage() {
 
           <select
             value={jobTypeFilter}
-            onChange={(e) => setJobTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setJobTypeFilter(e.target.value);
+              setPage(1);
+            }}
             className="px-3 py-2 text-sm rounded-md border border-[#e2e5f1] bg-white text-slate-700 focus:outline-hidden focus:border-[#371ee1]"
           >
             <option value="all">{locale === 'bn' ? 'সব ধরন' : 'All Job Types'}</option>
@@ -328,6 +345,34 @@ export default function JobsPage() {
             <option value="Full-time">Full-time</option>
             <option value="Contract">Contract</option>
             <option value="Internship">Internship</option>
+          </select>
+
+          {/* Date Posted Filter */}
+          <select
+            value={datePostedFilter}
+            onChange={(e) => {
+              setDatePostedFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 text-sm rounded-md border border-[#e2e5f1] bg-white text-slate-700 focus:outline-hidden focus:border-[#371ee1]"
+          >
+            <option value="all">{locale === 'bn' ? 'যেকোনো সময়' : 'Any time'}</option>
+            <option value="24h">{locale === 'bn' ? 'গত ২৪ ঘণ্টা' : 'Past 24 hours'}</option>
+            <option value="week">{locale === 'bn' ? 'গত সপ্তাহ' : 'Past week'}</option>
+            <option value="month">{locale === 'bn' ? 'গত মাস' : 'Past month'}</option>
+          </select>
+
+          {/* Sort By */}
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 text-sm rounded-md border border-[#e2e5f1] bg-white text-slate-700 focus:outline-hidden focus:border-[#371ee1]"
+          >
+            <option value="match">{locale === 'bn' ? 'সেরা ম্যাচ' : 'Best Match'}</option>
+            <option value="recent">{locale === 'bn' ? 'নতুন পোস্ট' : 'Most Recent'}</option>
           </select>
 
           <button

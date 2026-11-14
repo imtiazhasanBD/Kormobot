@@ -6,6 +6,14 @@ export const GetJobsQuerySchema = z.object({
     .enum(['all', 'greenhouse', 'lever', 'workable', 'wellfound', 'linkedin', 'alljobs', 'bdjobs'])
     .optional()
     .default('all'),
+  datePosted: z
+    .enum(['all', '24h', 'week', 'month'])
+    .optional()
+    .default('all'),
+  sortBy: z
+    .enum(['match', 'recent'])
+    .optional()
+    .default('match'),
   location: z.string().trim().optional(),
   jobType: z.string().trim().optional(),
   refresh: z.enum(['true', 'false']).optional(),

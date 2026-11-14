@@ -31,7 +31,9 @@ export interface JobItem {
   jobUrl: string;
   appliedStatus: string;
   savedStatus: boolean;
+  postedAt?: string | null;
   fetchedAt?: string;
+  createdAt?: string;
 }
 
 interface JobCardProps {
@@ -72,6 +74,42 @@ const PLATFORM_LABELS: Record<string, { name: string; badgeClass: string }> = {
   },
 };
 
+function getRelativePostTime(
+  postedAt?: string | null,
+  createdAt?: string | null,
+  locale?: string,
+): string {
+  const dateStr = postedAt || createdAt;
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+
+  const now = Date.now();
+  const diffMs = Math.max(0, now - date.getTime());
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (locale === 'bn') {
+    if (diffMin < 2) return 'এইমাত্র';
+    if (diffMin < 60) return `${diffMin} মিনিট আগে`;
+    if (diffHour < 24) return `${diffHour} ঘণ্টা আগে`;
+    if (diffDay === 1) return 'গতকাল';
+    if (diffDay < 7) return `${diffDay} দিন আগে`;
+    if (diffDay < 30) return `${Math.floor(diffDay / 7)} সপ্তাহ আগে`;
+    return `${Math.floor(diffDay / 30)} মাস আগে`;
+  }
+
+  if (diffMin < 2) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)}w ago`;
+  return `${Math.floor(diffDay / 30)}mo ago`;
+}
+
 export function JobCard({
   job,
   onToggleSave,
@@ -85,6 +123,8 @@ export function JobCard({
     name: job.platform,
     badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
   };
+
+  const postTime = getRelativePostTime(job.postedAt, job.createdAt, locale);
 
   const matchScore = job.matchScore ?? 72;
   const tags = Array.isArray(job.tags) ? job.tags : [];
@@ -129,6 +169,13 @@ export function JobCard({
               >
                 {platformMeta.name}
               </span>
+
+              {postTime && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-slate-600 bg-slate-100/90 border border-slate-200">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  <span>{postTime}</span>
+                </span>
+              )}
 
               {job.appliedStatus && job.appliedStatus !== 'none' && (
                 <span
