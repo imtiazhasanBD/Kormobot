@@ -73,6 +73,7 @@ model Job {
   sourceUrl       String?
   appliedStatus   String   @default("none") // none, queued, submitted, failed, missing_info
   savedStatus     Boolean  @default(false)
+  isClosed        Boolean  @default(false)
   postedAt        DateTime?
   fetchedAt       DateTime @default(now())
   createdAt       DateTime @default(now())
@@ -83,6 +84,7 @@ model Job {
   @@unique([userId, jobUrl])
   @@index([userId, platform])
   @@index([userId, savedStatus])
+  @@index([userId, isClosed])
 }
 
 model Application {

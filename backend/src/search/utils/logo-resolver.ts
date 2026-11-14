@@ -50,7 +50,22 @@ function extractDomainCandidates(company: string, jobUrl: string): string[] {
 interface PageMetadata {
   logo: string | null;
   postedAt?: Date;
+  isClosed?: boolean;
 }
+
+const CLOSED_PAGE_PATTERNS = [
+  /class=["'][^"']*closed-job/i,
+  /no longer accepting applications/i,
+  /this job is (?:no longer available|closed|filled)/i,
+  /this position (?:has been (?:closed|filled)|is closed)/i,
+  /job posting (?:you're looking for )?might have closed/i,
+  /we are no longer accepting applications/i,
+  /applications (?:are now|have been) closed/i,
+  /the job you are looking for has (?:been filled|expired|closed)/i,
+  /this listing has expired/i,
+  /<body[^>]*class=["'][^"']*404[^"']*["']/i,
+  /Sorry, we couldn't find anything here/i,
+];
 
 function parsePageDateString(raw: string): Date | undefined {
   const trimmed = raw.trim();
@@ -88,9 +103,13 @@ async function extractPageMetadata(jobUrl: string): Promise<PageMetadata> {
       },
       signal: AbortSignal.timeout(4500),
     });
-    if (!res.ok) return { logo: null };
+    if (!res.ok) {
+      const isDeadUrl = res.status === 404 || res.status === 410;
+      return { logo: null, isClosed: isDeadUrl };
+    }
 
     const html = await res.text();
+    const isClosed = CLOSED_PAGE_PATTERNS.some((pattern) => pattern.test(html));
     let logo: string | null = null;
     let postedAt: Date | undefined;
 
@@ -122,7 +141,7 @@ async function extractPageMetadata(jobUrl: string): Promise<PageMetadata> {
       }
     }
 
-    return { logo, postedAt };
+    return { logo, postedAt, isClosed };
   } catch {
     return { logo: null };
   }
@@ -146,10 +165,11 @@ async function resolveVerifiedFavicon(company: string, jobUrl: string): Promise<
 }
 
 export async function resolveCompanyLogoAndMetadata(
-  job: Pick<NormalizedJobResult, 'platform' | 'company' | 'jobUrl' | 'companyLogo' | 'postedAt'>,
-): Promise<{ logo: string | null; postedAt?: Date }> {
+  job: Pick<NormalizedJobResult, 'platform' | 'company' | 'jobUrl' | 'companyLogo' | 'postedAt' | 'isClosed'>,
+): Promise<{ logo: string | null; postedAt?: Date; isClosed?: boolean }> {
   let logo = job.companyLogo || null;
   let postedAt = job.postedAt ? new Date(job.postedAt) : undefined;
+  let isClosed = Boolean(job.isClosed);
 
   if (
     job.platform === 'greenhouse' ||
@@ -161,13 +181,14 @@ export async function resolveCompanyLogoAndMetadata(
     const pageMeta = await extractPageMetadata(job.jobUrl);
     if (!logo && pageMeta.logo) logo = pageMeta.logo;
     if (!postedAt && pageMeta.postedAt) postedAt = pageMeta.postedAt;
+    if (pageMeta.isClosed) isClosed = true;
   }
 
   if (!logo) {
     logo = await resolveVerifiedFavicon(job.company, job.jobUrl);
   }
 
-  return { logo, postedAt };
+  return { logo, postedAt, isClosed };
 }
 
 export async function enrichJobsWithLogos(
@@ -184,6 +205,7 @@ export async function enrichJobsWithLogos(
           ...job,
           companyLogo: meta.logo || job.companyLogo || undefined,
           postedAt: meta.postedAt || job.postedAt || undefined,
+          isClosed: Boolean(meta.isClosed || job.isClosed),
         };
       }),
     );

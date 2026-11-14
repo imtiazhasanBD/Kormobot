@@ -28,6 +28,7 @@ export class JobsService {
     const freshCount = await this.prisma.job.count({
       where: {
         userId,
+        isClosed: false,
         ...(platformFilter ? { platform: platformFilter } : {}),
         fetchedAt: { gte: sixHoursAgo },
       },
@@ -69,6 +70,7 @@ export class JobsService {
     // Build filtered Prisma query
     const whereClause: any = {
       userId,
+      isClosed: false,
       ...(platformFilter ? { platform: platformFilter } : {}),
       ...(query.location
         ? { location: { contains: query.location, mode: 'insensitive' } }
@@ -136,7 +138,7 @@ export class JobsService {
       this.prisma.job.count({ where: whereClause }),
       this.prisma.job.groupBy({
         by: ['platform'],
-        where: { userId },
+        where: { userId, isClosed: false } as any,
         _count: { id: true },
       }),
       this.prisma.job.findFirst({
@@ -213,6 +215,18 @@ export class JobsService {
   ) {
     const now = new Date();
     for (const item of results) {
+      if (item.isClosed) {
+        // If closed, update any existing records to isClosed: true so they disappear from active feed
+        await this.prisma.job.updateMany({
+          where: {
+            userId,
+            jobUrl: item.jobUrl,
+          },
+          data: { isClosed: true },
+        });
+        continue;
+      }
+
       const matchScore = this.computeMatchScore(item, profile);
       const parsedPostedAt = item.postedAt ? new Date(item.postedAt) : null;
       const validPostedAt =
@@ -238,6 +252,7 @@ export class JobsService {
           description: item.description || null,
           tags: item.tags,
           matchScore,
+          isClosed: false,
           postedAt: validPostedAt || now,
           jobUrl: item.jobUrl,
           sourceUrl: item.sourceUrl || item.jobUrl,
@@ -254,6 +269,7 @@ export class JobsService {
           description: item.description || null,
           tags: item.tags,
           matchScore,
+          isClosed: false,
           ...(parsedPostedAt && !isNaN(parsedPostedAt.getTime())
             ? { postedAt: parsedPostedAt }
             : {}),

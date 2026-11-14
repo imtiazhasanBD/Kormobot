@@ -31,6 +31,7 @@ export interface NormalizedJobResult {
   postedAt?: Date | string;
   jobUrl: string;
   sourceUrl?: string;
+  isClosed?: boolean;
 }
 
 export interface SearchProvider {

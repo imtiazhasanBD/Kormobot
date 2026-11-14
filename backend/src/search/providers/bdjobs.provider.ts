@@ -11,6 +11,8 @@ interface BdJobsApiItem {
   companyName?: string | null;
   publishDate?: string | null;
   deadline?: string | null;
+  deadlineDB?: string | null;
+  OnlineJob?: boolean;
   eduRec?: string | null;
   experience?: string | null;
   location?: string | null;
@@ -128,6 +130,21 @@ export class BdJobsProvider implements SearchProvider {
   }
 
   private toNormalizedJob(item: BdJobsApiItem): NormalizedJobResult | null {
+    if (item.OnlineJob === false) return null;
+
+    if (item.deadlineDB) {
+      const d = new Date(item.deadlineDB);
+      if (!isNaN(d.getTime()) && d.getTime() < Date.now()) {
+        return null;
+      }
+    }
+    if (item.deadline) {
+      const d = new Date(item.deadline);
+      if (!isNaN(d.getTime()) && d.getTime() < Date.now()) {
+        return null;
+      }
+    }
+
     const jobId = item.Jobid ? String(item.Jobid).trim() : '';
     const title = item.jobTitle?.trim();
     if (!jobId || !title) return null;

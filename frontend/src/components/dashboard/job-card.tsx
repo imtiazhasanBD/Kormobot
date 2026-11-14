@@ -31,6 +31,7 @@ export interface JobItem {
   jobUrl: string;
   appliedStatus: string;
   savedStatus: boolean;
+  isClosed?: boolean;
   postedAt?: string | null;
   fetchedAt?: string;
   createdAt?: string;
@@ -177,6 +178,13 @@ export function JobCard({
                 </span>
               )}
 
+              {job.isClosed && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                  <AlertCircle className="w-3 h-3 text-rose-600" />
+                  <span>{locale === 'bn' ? 'আবেদন বন্ধ' : 'Closed'}</span>
+                </span>
+              )}
+
               {job.appliedStatus && job.appliedStatus !== 'none' && (
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
@@ -288,25 +296,34 @@ export function JobCard({
             <span>{job.savedStatus ? t.jobs.saved : t.jobs.saveForLater}</span>
           </button>
 
-          {onApplyWithAi && job.platform !== 'alljobs' && job.platform !== 'bdjobs' && (
-            <button
-              onClick={() => onApplyWithAi(job)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#eef0fe] hover:bg-[#e2e5f1] text-[#371ee1] text-xs font-semibold border border-[#371ee1]/20 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{t.jobs.applyAutomatically}</span>
-            </button>
-          )}
+          {job.isClosed ? (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-200">
+              <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+              <span>{locale === 'bn' ? 'আবেদন বন্ধ' : 'Closed'}</span>
+            </span>
+          ) : (
+            <>
+              {onApplyWithAi && job.platform !== 'alljobs' && job.platform !== 'bdjobs' && (
+                <button
+                  onClick={() => onApplyWithAi(job)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-[#eef0fe] hover:bg-[#e2e5f1] text-[#371ee1] text-xs font-semibold border border-[#371ee1]/20 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{t.jobs.applyAutomatically}</span>
+                </button>
+              )}
 
-          <a
-            href={job.jobUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold shadow-xs transition-colors"
-          >
-            <span>{locale === 'bn' ? 'আবেদন করুন' : t.jobs.applyNow}</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+              <a
+                href={job.jobUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#371ee1] hover:bg-[#2e17c4] text-white text-xs font-semibold shadow-xs transition-colors"
+              >
+                <span>{locale === 'bn' ? 'আবেদন করুন' : t.jobs.applyNow}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </>
+          )}
         </div>
       </div>
     </div>

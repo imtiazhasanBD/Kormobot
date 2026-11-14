@@ -329,6 +329,16 @@ export function extractPostedAt(
   return undefined;
 }
 
+const SNIPPET_CLOSED_PATTERNS = [
+  /no longer accepting applications/i,
+  /this job is (?:no longer available|closed|filled)/i,
+  /this position (?:has been (?:closed|filled)|is closed)/i,
+  /job posting (?:you're looking for )?might have closed/i,
+  /applications (?:are now|have been) closed/i,
+  /the job you are looking for has (?:been filled|expired|closed)/i,
+  /this listing has expired/i,
+];
+
 export function normalizeSearchResult(
   raw: RawSearchResult,
   fallbackPlatform?: JobPlatform,
@@ -338,12 +348,16 @@ export function normalizeSearchResult(
   if (!platform) return null;
   if (!isSpecificJobUrl(raw.url, platform)) return null;
 
+  const combined = `${raw.title || ''} ${raw.content || ''}`;
+  if (SNIPPET_CLOSED_PATTERNS.some((pattern) => pattern.test(combined))) {
+    return null;
+  }
+
   const { title, company, location: titleLoc } = extractTitleAndCompany(
     raw.title || '',
     raw.url,
     platform,
   );
-  const combined = `${raw.title || ''} ${raw.content || ''}`;
   const location = titleLoc || extractLocationFallback(combined) || 'Remote / Hybrid';
   const tags = extractTags(combined);
   const jobType = extractJobType(combined);
