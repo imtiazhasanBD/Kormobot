@@ -104,15 +104,27 @@ export class UsersService {
       // 3. AI parsing of resume text
       const parsedData = await this.aiService.parseResume(extractedText);
 
+      // Extract target role from AI parsed role, top experience title, or resume header
+      const headerRoleMatch = extractedText
+        .slice(0, 1200)
+        .match(
+          /\b(Full[\s-]Stack\s+(?:Developer|Engineer|Software Engineer)|Frontend\s+(?:Developer|Engineer)|Backend\s+(?:Developer|Engineer)|Software\s+(?:Engineer|Developer)|Web\s+Developer|DevOps\s+Engineer|Mobile\s+(?:Developer|Engineer)|Data\s+(?:Engineer|Scientist)|UI\/UX\s+Designer)\b/i,
+        );
+
+      const targetRole =
+        parsedData.role?.trim() ||
+        parsedData.experience?.[0]?.title?.trim() ||
+        (headerRoleMatch ? headerRoleMatch[1].trim() : null);
+
       // 4. Upsert User Profile with parsed data
       const updatedProfile = await this.prisma.profile.upsert({
         where: { userId },
         create: {
           userId,
           fullName: parsedData.fullName || null,
+          role: targetRole || null,
           phone: parsedData.phone || null,
           location: parsedData.location || null,
-          role: parsedData.experience?.[0]?.title || null,
           summary: parsedData.summary || null,
           skills: parsedData.skills || [],
           experience: parsedData.experience || [],
@@ -125,6 +137,7 @@ export class UsersService {
         },
         update: {
           ...(parsedData.fullName && { fullName: parsedData.fullName }),
+          ...(targetRole && { role: targetRole }),
           ...(parsedData.phone && { phone: parsedData.phone }),
           ...(parsedData.location && { location: parsedData.location }),
           ...(parsedData.summary && { summary: parsedData.summary }),

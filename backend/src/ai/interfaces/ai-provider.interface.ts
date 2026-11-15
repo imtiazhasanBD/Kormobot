@@ -1,5 +1,6 @@
 export interface ParsedResumeResult {
   fullName?: string;
+  role?: string;
   email?: string;
   phone?: string;
   location?: string;

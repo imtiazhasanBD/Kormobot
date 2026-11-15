@@ -18,6 +18,7 @@ export class GeminiProvider implements AiProvider {
       const prompt = `You are an expert HR and resume parsing assistant. Extract all relevant details from the following resume text and respond ONLY with a raw valid JSON object (no markdown, no backticks, no explanations) matching this exact schema:
 {
   "fullName": "string",
+  "role": "string",
   "email": "string",
   "phone": "string",
   "location": "string",

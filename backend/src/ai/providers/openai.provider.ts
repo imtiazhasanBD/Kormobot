@@ -18,6 +18,7 @@ export class OpenAiProvider implements AiProvider {
       const prompt = `Extract all relevant details from this resume and respond ONLY with raw JSON matching this schema:
 {
   "fullName": "string",
+  "role": "string",
   "email": "string",
   "phone": "string",
   "location": "string",
