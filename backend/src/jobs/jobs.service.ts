@@ -3,7 +3,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SearchService } from '../search/search.service';
 import { JobPlatform, NormalizedJobResult } from '../search/interfaces/search-provider.interface';
 import { enrichJobsWithLogos } from '../search/utils/logo-resolver';
-import { isJobCompatibleWithProfile, computeJobMatchScore } from '../search/utils/job-matching';
+import {
+  isJobCompatibleWithProfile,
+  computeJobMatchScore,
+  isLocationBangladesh,
+  isJobLocationEligible,
+  getUserCountry,
+} from '../search/utils/job-matching';
 import { GetJobsQueryDto } from './dto/jobs.dto';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -23,7 +29,46 @@ export class JobsService {
     });
 
     const sixHoursAgo = new Date(Date.now() - CACHE_TTL_MS);
+    const userCountry = getUserCountry(profile?.location);
+    const isBangladesh = isLocationBangladesh(profile?.location);
+
+    // Platforms: bdjobs and alljobs are only available for Bangladesh
+    const defaultPlatforms: JobPlatform[] = isBangladesh
+      ? ['greenhouse', 'lever', 'workable', 'wellfound', 'linkedin', 'alljobs', 'bdjobs']
+      : ['greenhouse', 'lever', 'workable', 'wellfound', 'linkedin'];
+
     const platformFilter = query.platform !== 'all' ? query.platform : undefined;
+
+    // Location filter condition
+    const locationCondition: any[] = [];
+    if (query.location) {
+      locationCondition.push({ location: { contains: query.location, mode: 'insensitive' } });
+    } else if (isBangladesh) {
+      locationCondition.push(
+        { platform: { in: ['bdjobs', 'alljobs'] } },
+        { location: { contains: 'Remote', mode: 'insensitive' } },
+        { location: { contains: 'Bangladesh', mode: 'insensitive' } },
+        { location: { contains: 'Dhaka', mode: 'insensitive' } },
+        { location: { contains: 'Chittagong', mode: 'insensitive' } },
+        { location: { contains: 'Chattogram', mode: 'insensitive' } },
+        { location: { contains: 'Sylhet', mode: 'insensitive' } },
+        { location: { contains: 'Work from Home', mode: 'insensitive' } },
+        { jobType: { contains: 'Remote', mode: 'insensitive' } },
+      );
+    } else if (userCountry) {
+      locationCondition.push(
+        { location: { contains: 'Remote', mode: 'insensitive' } },
+        { location: { contains: 'Work from Home', mode: 'insensitive' } },
+        { jobType: { contains: 'Remote', mode: 'insensitive' } },
+        { location: { contains: userCountry, mode: 'insensitive' } },
+      );
+      if (profile?.location) {
+        const city = profile.location.split(',')[0]?.trim();
+        if (city && city.toLowerCase() !== userCountry.toLowerCase()) {
+          locationCondition.push({ location: { contains: city, mode: 'insensitive' } });
+        }
+      }
+    }
 
     // Check fresh DB cache (< 6 hours old)
     const freshCount = await this.prisma.job.count({
@@ -32,6 +77,7 @@ export class JobsService {
         isClosed: false,
         matchScore: { gte: 45 },
         ...(platformFilter ? { platform: platformFilter } : {}),
+        ...(locationCondition.length > 0 ? { OR: locationCondition } : {}),
         fetchedAt: { gte: sixHoursAgo },
       },
     });
@@ -48,20 +94,24 @@ export class JobsService {
       try {
         const platformsToQuery: JobPlatform[] = platformFilter
           ? [platformFilter]
-          : ['greenhouse', 'lever', 'workable', 'wellfound', 'linkedin', 'alljobs', 'bdjobs'];
+          : defaultPlatforms;
+
+        const effectiveSearchLocation =
+          query.location ||
+          (isBangladesh ? 'Bangladesh OR Remote' : userCountry ? `${userCountry} OR Remote` : 'Remote');
 
         const searchRes = await this.searchService.searchJobs({
           query: query.q || profile?.role || 'Full Stack Developer',
           role: profile?.role || undefined,
           skills: profile?.skills || [],
-          location: query.location || undefined,
+          location: effectiveSearchLocation,
           jobType: query.jobType || undefined,
           platforms: platformsToQuery,
         });
 
         activeProvider = searchRes.provider;
         const enrichedResults = await enrichJobsWithLogos(searchRes.results);
-        await this.upsertJobsForUser(userId, enrichedResults, profile);
+        await this.upsertJobsForUser(userId, enrichedResults, profile, query.location);
         cacheHit = false;
       } catch (err: any) {
         this.logger.error(`Live job search failed: ${err.message}`);
@@ -75,9 +125,6 @@ export class JobsService {
       isClosed: false,
       ...(platformFilter ? { platform: platformFilter } : {}),
       ...(!query.q ? { matchScore: { gte: 45 } } : {}),
-      ...(query.location
-        ? { location: { contains: query.location, mode: 'insensitive' } }
-        : {}),
       ...(query.jobType && query.jobType !== 'all'
         ? { jobType: { contains: query.jobType, mode: 'insensitive' } }
         : {}),
@@ -91,6 +138,13 @@ export class JobsService {
           }
         : {}),
     };
+
+    if (locationCondition.length > 0) {
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        { OR: locationCondition },
+      ];
+    }
 
     if (query.datePosted && query.datePosted !== 'all') {
       const now = Date.now();
@@ -141,7 +195,12 @@ export class JobsService {
       this.prisma.job.count({ where: whereClause }),
       this.prisma.job.groupBy({
         by: ['platform'],
-        where: { userId, isClosed: false, matchScore: { gte: 45 } } as any,
+        where: {
+          userId,
+          isClosed: false,
+          matchScore: { gte: 45 },
+          ...(locationCondition.length > 0 ? { OR: locationCondition } : {}),
+        } as any,
         _count: { id: true },
       }),
       this.prisma.job.findFirst({
@@ -214,7 +273,8 @@ export class JobsService {
   private async upsertJobsForUser(
     userId: string,
     results: NormalizedJobResult[],
-    profile: { role?: string | null; skills?: string[] } | null,
+    profile: { role?: string | null; skills?: string[]; location?: string | null } | null,
+    queryLocation?: string,
   ) {
     const now = new Date();
     for (const item of results) {
@@ -234,6 +294,18 @@ export class JobsService {
       const compatibility = isJobCompatibleWithProfile(item, profile);
       if (!compatibility.compatible) {
         // If it was in the database and not saved, delete it so it never shows in active feed
+        await this.prisma.job.deleteMany({
+          where: {
+            userId,
+            jobUrl: item.jobUrl,
+            savedStatus: false,
+          },
+        });
+        continue;
+      }
+
+      // Check location eligibility: in-country or remote jobs only
+      if (!isJobLocationEligible(item, profile?.location, queryLocation)) {
         await this.prisma.job.deleteMany({
           where: {
             userId,

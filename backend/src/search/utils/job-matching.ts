@@ -194,3 +194,125 @@ export function computeJobMatchScore(
   return Math.min(98, Math.max(45, score));
 }
 
+export function getUserCountry(location?: string | null): string {
+  if (!location) return 'Bangladesh';
+  const lower = location.toLowerCase();
+  if (
+    lower.includes('bangladesh') ||
+    lower.includes('bd') ||
+    lower.includes('dhaka') ||
+    lower.includes('chittagong') ||
+    lower.includes('chattogram') ||
+    lower.includes('sylhet') ||
+    lower.includes('rajshahi') ||
+    lower.includes('khulna') ||
+    lower.includes('barishal') ||
+    lower.includes('rangpur') ||
+    lower.includes('mymensingh')
+  ) {
+    return 'Bangladesh';
+  }
+  if (lower.includes('united states') || lower.includes('usa') || lower.includes('u.s.')) {
+    return 'United States';
+  }
+  if (lower.includes('united kingdom') || lower.includes('uk') || lower.includes('london')) {
+    return 'United Kingdom';
+  }
+  if (lower.includes('canada') || lower.includes('toronto') || lower.includes('vancouver')) {
+    return 'Canada';
+  }
+  if (lower.includes('india') || lower.includes('delhi') || lower.includes('bangalore') || lower.includes('bengaluru')) {
+    return 'India';
+  }
+  if (lower.includes('germany') || lower.includes('berlin') || lower.includes('munich')) {
+    return 'Germany';
+  }
+  const parts = location.split(',').map((p) => p.trim());
+  return parts[parts.length - 1] || 'Bangladesh';
+}
+
+export function isLocationBangladesh(location?: string | null): boolean {
+  if (!location) return true; // Default to Bangladesh context
+  const lower = location.toLowerCase();
+  return (
+    lower.includes('bangladesh') ||
+    lower.includes('bd') ||
+    lower.includes('dhaka') ||
+    lower.includes('chittagong') ||
+    lower.includes('chattogram') ||
+    lower.includes('sylhet') ||
+    lower.includes('rajshahi') ||
+    lower.includes('khulna') ||
+    lower.includes('barishal') ||
+    lower.includes('rangpur') ||
+    lower.includes('mymensingh') ||
+    lower.includes('uttara') ||
+    lower.includes('gulshan') ||
+    lower.includes('banani') ||
+    lower.includes('mohakhali') ||
+    lower.includes('dhanmondi') ||
+    lower.includes('mirpur') ||
+    lower.includes('gazipur') ||
+    lower.includes('narayanganj') ||
+    lower.includes('bogra') ||
+    lower.includes('cumilla')
+  );
+}
+
+export function isRemoteJob(job: {
+  location?: string | null;
+  jobType?: string | null;
+  title?: string | null;
+  description?: string | null;
+}): boolean {
+  const text = `${job.location || ''} ${job.jobType || ''} ${job.title || ''} ${job.description || ''}`.toLowerCase();
+  return (
+    text.includes('remote') ||
+    text.includes('work from home') ||
+    text.includes('wfh') ||
+    text.includes('anywhere') ||
+    text.includes('worldwide') ||
+    text.includes('distributed') ||
+    text.includes('virtual') ||
+    text.includes('telecommute') ||
+    text.includes('home-based')
+  );
+}
+
+export function isJobLocationEligible(
+  job: {
+    platform: string;
+    location?: string | null;
+    jobType?: string | null;
+    title?: string | null;
+    description?: string | null;
+  },
+  userLocation?: string | null,
+  explicitQueryLocation?: string | null,
+): boolean {
+  // If user explicitly searched for a location (e.g. "Germany", "New York")
+  if (explicitQueryLocation && explicitQueryLocation.trim().length > 0) {
+    const qLower = explicitQueryLocation.toLowerCase();
+    const locLower = (job.location || '').toLowerCase();
+    return locLower.includes(qLower) || isRemoteJob(job);
+  }
+
+  const isBD = isLocationBangladesh(userLocation);
+  if (isBD) {
+    // 1. Bangladesh platforms are always in Bangladesh
+    if (job.platform === 'bdjobs' || job.platform === 'alljobs') return true;
+
+    // 2. Any job located in Bangladesh is eligible
+    if (isLocationBangladesh(job.location)) return true;
+
+    // 3. Any job outside Bangladesh is eligible ONLY if it is Remote
+    return isRemoteJob(job);
+  }
+
+  // For non-Bangladesh user: eligible if in their country or remote
+  const userCountry = getUserCountry(userLocation);
+  const locLower = (job.location || '').toLowerCase();
+  return locLower.includes(userCountry.toLowerCase()) || isRemoteJob(job);
+}
+
+

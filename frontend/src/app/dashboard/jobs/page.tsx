@@ -155,6 +155,12 @@ export default function JobsPage() {
   const platformCounts = jobsData?.platformCounts || {};
   const totalSavedCount = jobs.filter((j) => j.savedStatus).length;
 
+  const isBangladeshUser =
+    !profile?.location ||
+    /bangladesh|dhaka|bd|chittagong|chattogram|sylhet/i.test(profile.location) ||
+    locale === 'bn' ||
+    /bangladesh|dhaka/i.test(locationFilter);
+
   const platforms: Array<{ id: PlatformFilter; label: string; domain: string; count: number }> = [
     {
       id: 'all',
@@ -166,8 +172,7 @@ export default function JobsPage() {
         (platformCounts.workable || 0) +
         (platformCounts.wellfound || 0) +
         (platformCounts.linkedin || 0) +
-        (platformCounts.alljobs || 0) +
-        (platformCounts.bdjobs || 0),
+        (isBangladeshUser ? (platformCounts.alljobs || 0) + (platformCounts.bdjobs || 0) : 0),
     },
     {
       id: 'greenhouse',
@@ -199,18 +204,22 @@ export default function JobsPage() {
       domain: 'linkedin.com/jobs',
       count: platformCounts.linkedin || 0,
     },
-    {
-      id: 'alljobs',
-      label: locale === 'bn' ? 'অলজবস (বিডি)' : 'AllJobs (BD)',
-      domain: 'alljobs.teletalk.com.bd',
-      count: platformCounts.alljobs || 0,
-    },
-    {
-      id: 'bdjobs',
-      label: locale === 'bn' ? 'বিডিজবস' : 'BDJobs',
-      domain: 'bdjobs.com',
-      count: platformCounts.bdjobs || 0,
-    },
+    ...(isBangladeshUser
+      ? [
+          {
+            id: 'alljobs' as PlatformFilter,
+            label: locale === 'bn' ? 'অলজবস (বিডি)' : 'AllJobs (BD)',
+            domain: 'alljobs.teletalk.com.bd',
+            count: platformCounts.alljobs || 0,
+          },
+          {
+            id: 'bdjobs' as PlatformFilter,
+            label: locale === 'bn' ? 'বিডিজবস' : 'BDJobs',
+            domain: 'bdjobs.com',
+            count: platformCounts.bdjobs || 0,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -264,7 +273,11 @@ export default function JobsPage() {
       </div>
 
       {/* Selectable Platform Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+      <div
+        className={`grid grid-cols-2 sm:grid-cols-4 ${
+          isBangladeshUser ? 'xl:grid-cols-8' : 'xl:grid-cols-6'
+        } gap-3`}
+      >
         {platforms.map((p) => {
           const active = selectedPlatform === p.id;
           return (
