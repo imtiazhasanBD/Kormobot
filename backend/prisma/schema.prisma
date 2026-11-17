@@ -51,6 +51,7 @@ model Resume {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   fileUrl   String
   fileName  String
+  fileSize  Int?
   createdAt DateTime @default(now())
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import * as fs from 'fs';
@@ -26,13 +26,36 @@ export class UsersService {
         credits: true,
         resumes: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
         },
       },
     });
 
+    const resumesWithMeta = (user?.resumes || []).map((res) => {
+      let fileSize = (res as any).fileSize;
+      if (!fileSize) {
+        try {
+          const relPath = res.fileUrl.startsWith('/') ? res.fileUrl.slice(1) : res.fileUrl;
+          const filePath = path.join(process.cwd(), relPath);
+          if (fs.existsSync(filePath)) {
+            fileSize = fs.statSync(filePath).size;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return {
+        ...res,
+        fileSize: fileSize ?? null,
+      };
+    });
+
     return {
-      user,
+      user: user
+        ? {
+            ...user,
+            resumes: resumesWithMeta,
+          }
+        : null,
       profile,
     };
   }
@@ -98,7 +121,8 @@ export class UsersService {
           userId,
           fileName: file.originalname,
           fileUrl,
-        },
+          fileSize: file.size,
+        } as any,
       });
 
       // 3. AI parsing of resume text
@@ -162,6 +186,58 @@ export class UsersService {
       this.logger.error(`Failed to parse resume: ${err.message}`, err.stack);
       throw new BadRequestException(`Failed to parse resume: ${err.message}`);
     }
+  }
+
+  async getResumeForDownload(userId: string, resumeId: string) {
+    const resume = await this.prisma.resume.findFirst({
+      where: { id: resumeId, userId },
+    });
+
+    if (!resume) {
+      throw new NotFoundException('Resume not found');
+    }
+
+    const relPath = resume.fileUrl.startsWith('/') ? resume.fileUrl.slice(1) : resume.fileUrl;
+    const filePath = path.join(process.cwd(), relPath);
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Resume file not found on disk');
+    }
+
+    return {
+      filePath,
+      fileName: resume.fileName,
+    };
+  }
+
+  async deleteResume(userId: string, resumeId: string) {
+    const resume = await this.prisma.resume.findFirst({
+      where: { id: resumeId, userId },
+    });
+
+    if (!resume) {
+      throw new NotFoundException('Resume not found');
+    }
+
+    try {
+      const relPath = resume.fileUrl.startsWith('/') ? resume.fileUrl.slice(1) : resume.fileUrl;
+      const filePath = path.join(process.cwd(), relPath);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not delete file from disk: ${err.message}`);
+    }
+
+    await this.prisma.resume.delete({
+      where: { id: resumeId },
+    });
+
+    return {
+      success: true,
+      message: 'Resume deleted successfully',
+      id: resumeId,
+    };
   }
 }
 

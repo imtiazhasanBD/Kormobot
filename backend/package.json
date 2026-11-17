@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "prisma generate && cp -r ../node_modules/.prisma node_modules/ 2>/dev/null && cp -r ../node_modules/@prisma/client node_modules/@prisma/ 2>/dev/null || true",
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
